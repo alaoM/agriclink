@@ -1,3 +1,4 @@
+import { AppText } from '@/components/AppText';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { router } from 'expo-router';
@@ -9,7 +10,6 @@ import {
     Platform,
     SafeAreaView,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
@@ -60,10 +60,10 @@ export default function ForgotIdentifier() {
               <View style={{ width: 24 }} />
             </View>
 
-            <Text style={styles.title}>Forgot Password</Text>
-            <Text style={styles.subtitle}>
+            <AppText style={styles.title}>Forgot Password</AppText>
+            <AppText style={styles.subtitle}>
               Enter your registered email or phone number and we'll send you a reset link/code.
-            </Text>
+            </AppText>
 
             {/* Identifier */}
             <Controller
@@ -87,7 +87,7 @@ export default function ForgotIdentifier() {
               )}
             />
             {errors.identifier && (
-              <Text style={styles.error}>{errors.identifier.message}</Text>
+              <AppText style={styles.error}>{errors.identifier.message}</AppText>
             )}
 
             {/* Send button */}
@@ -99,16 +99,16 @@ export default function ForgotIdentifier() {
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <Text style={styles.btnText}>
+              <AppText style={styles.btnText}>
                 {isSubmitting ? 'Sending…' : 'Send Reset Link'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
 
       <View style={styles.brandContainer}>
-        <Text style={styles.brand}>AgriConnect</Text>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );

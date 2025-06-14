@@ -1,4 +1,5 @@
 // app/(auth)/register.tsx
+import { AppText } from '@/components/AppText';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { router } from 'expo-router';
@@ -11,7 +12,6 @@ import {
     SafeAreaView,
     ScrollView,
     StyleSheet,
-    Text,
     TextInput,
     TouchableOpacity,
     View,
@@ -72,14 +72,14 @@ export default function RegisterScreen() {
             {/* Header */}
             <View style={styles.headerRow}>
               <Feather name="arrow-left" size={24} onPress={() => router.back()} />
-              <Text style={styles.headerTitle}>Register</Text>
+              <AppText style={styles.headerTitle}>Register</AppText>
               <View style={{ width: 24 }} />
             </View>
 
             {/* -------- inputs -------- */}
             {inputSpec.map(({ name, label, secure }) => (
               <View key={name} style={styles.inputGroup}>
-                <Text style={styles.label}>{label}</Text>
+                <AppText style={styles.label}>{label}</AppText>
                 <Controller
                   control={control}
                   name={name as keyof FormData}
@@ -100,9 +100,9 @@ export default function RegisterScreen() {
                   )}
                 />
                 {errors[name as keyof FormData] && (
-                  <Text style={styles.error}>
+                  <AppText style={styles.error}>
                     {errors[name as keyof FormData]?.message as string}
-                  </Text>
+                  </AppText>
                 )}
               </View>
             ))}
@@ -113,16 +113,16 @@ export default function RegisterScreen() {
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <Text style={styles.btnText}>
+              <AppText style={styles.btnText}>
                 {isSubmitting ? 'Creating account…' : 'Register'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             {/* Sign‑in link */}
             <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
-              <Text style={styles.link}>
-                Already have an account? <Text style={{ fontWeight: '600' }}>Sign in</Text>
-              </Text>
+              <AppText style={styles.link}>
+                Already have an account? <AppText style={{ fontWeight: '600' }}>Sign in</AppText>
+              </AppText>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -130,7 +130,7 @@ export default function RegisterScreen() {
 
       {/* Brand pinned to bottom */}
       <View style={styles.brandContainer}>
-        <Text style={styles.brand}>AgriConnect</Text>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );

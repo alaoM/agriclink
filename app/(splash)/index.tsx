@@ -1,6 +1,7 @@
+import { AppText } from '@/components/AppText';
 import { router } from 'expo-router';
 import { useEffect } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 export default function Splash1() {
   useEffect(() => {
@@ -10,7 +11,7 @@ export default function Splash1() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Col‑Agri — Splash 1</Text>
+      <AppText style={styles.title}>Col‑Agri — Splash 1</AppText>
     </View>
   );
 }

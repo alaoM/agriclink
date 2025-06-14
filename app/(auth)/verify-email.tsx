@@ -1,17 +1,18 @@
+import { AppText } from '@/components/AppText';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { router, useLocalSearchParams } from 'expo-router';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import * as yup from 'yup';
 
@@ -56,10 +57,10 @@ export default function VerifyEmail() {
               <View style={{ width: 24 }} />
             </View>
 
-            <Text style={styles.title}>Verify Your Email</Text>
-            <Text style={styles.subtitle}>
+            <AppText style={styles.title}>Verify Your Email</AppText>
+            <AppText style={styles.subtitle}>
               Enter the 6‑digit code we sent to {email ?? 'your email'}.
-            </Text>
+            </AppText>
 
             {/* Code input */}
             <Controller
@@ -82,7 +83,7 @@ export default function VerifyEmail() {
                 />
               )}
             />
-            {errors.code && <Text style={styles.error}>{errors.code.message}</Text>}
+            {errors.code && <AppText style={styles.error}>{errors.code.message}</AppText>}
 
             {/* Verify button */}
             <TouchableOpacity
@@ -93,14 +94,14 @@ export default function VerifyEmail() {
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <Text style={styles.btnText}>
+              <AppText style={styles.btnText}>
                 {isSubmitting ? 'Verifying…' : 'Verify'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             {/* Resend link */}
             <TouchableOpacity onPress={() => Alert.alert('Resent!', 'Check your inbox.')}>
-              <Text style={styles.link}>Resend code</Text>
+              <AppText style={styles.link}>Resend code</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -108,7 +109,7 @@ export default function VerifyEmail() {
 
       {/* Brand at bottom */}
       <View style={styles.brandContainer}>
-        <Text style={styles.brand}>AgriConnect</Text>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );

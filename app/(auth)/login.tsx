@@ -1,4 +1,5 @@
 // app/(auth)/login.tsx
+import { AppText } from '@/components/AppText';
 import { yupResolver } from '@hookform/resolvers/yup';
 import Checkbox from 'expo-checkbox';
 import { router } from 'expo-router';
@@ -10,7 +11,6 @@ import {
   Platform,
   SafeAreaView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -66,7 +66,7 @@ export default function Login() {
       >
         <View style={styles.centerBox}>
           <View style={styles.card}>
-            <Text style={styles.title}>Welcome back</Text>
+            <AppText style={styles.title}>Welcome back</AppText>
 
             {/* Identifier */}
             <Controller
@@ -90,7 +90,7 @@ export default function Login() {
               )}
             />
             {errors.identifier && (
-              <Text style={styles.error}>{errors.identifier.message}</Text>
+              <AppText style={styles.error}>{errors.identifier.message}</AppText>
             )}
 
             {/* Password */}
@@ -115,7 +115,7 @@ export default function Login() {
               )}
             />
             {errors.password && (
-              <Text style={styles.error}>{errors.password.message}</Text>
+              <AppText style={styles.error}>{errors.password.message}</AppText>
             )}
 
             {/* Keep me signed in */}
@@ -126,7 +126,7 @@ export default function Login() {
                 color={keepSignedIn ? PRIMARY : undefined}
                 style={styles.checkbox}
               />
-              <Text style={styles.keepText}>Keep me signed in</Text>
+              <AppText style={styles.keepText}>Keep me signed in</AppText>
             </View>
 
             {/* Log In */}
@@ -138,16 +138,16 @@ export default function Login() {
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <Text style={styles.btnText}>
+              <AppText style={styles.btnText}>
                 {isSubmitting ? 'Logging in…' : 'Log In'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
 
             {/* Forgot password */}
             <TouchableOpacity
               onPress={() => router.push('/(auth)/forgot-password')}
             >
-              <Text style={styles.link}>Forgot Password?</Text>
+              <AppText style={styles.link}>Forgot Password?</AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -158,9 +158,9 @@ export default function Login() {
         <TouchableOpacity
               onPress={() => router.push('/(auth)/register')}
             >
-              <Text style={styles.accountLink}>Create new account</Text>
+              <AppText style={styles.accountLink}>Create new account</AppText>
             </TouchableOpacity>
-        <Text style={styles.brand}>AgriConnect</Text>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
   },
   brand:        { fontSize: 16, fontWeight: '500', color: '#4C794C' },
 
-  /* Text / inputs */
+  /* AppText / inputs */
   title:        { fontSize: 22, fontWeight: '700', marginBottom: 12 },
   input: {
     height: 48,

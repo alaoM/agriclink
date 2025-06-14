@@ -1,14 +1,13 @@
-// app/(main)/_layout.tsx
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform } from 'react-native';
 
- import { HapticTab } from '@/components/HapticTab'; // optional – your haptic wrapper
-import { IconSymbol } from '@/components/ui/IconSymbol'; // SF‑Symbol wrapper
+import { HapticTab } from '@/components/HapticTab'; // optional
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme.web';
- 
+
 export default function MainTabs() {
   const colorScheme = useColorScheme();
 
@@ -17,41 +16,57 @@ export default function MainTabs() {
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-         tabBarButton: HapticTab,
-         tabBarBackground: TabBarBackground,
+        tabBarButton: HapticTab,
+        tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
-          ios: { position: 'absolute' }, // allow the blur to show through
+          ios: { position: 'absolute' }, // translucent blur
           default: {},
         }),
       }}
     >
+      {/* ------------- Home ------------- */}
       <Tabs.Screen
-        name="index"          // -> app/(main)/index.tsx
+        name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="house.fill" size={28} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="home" size={size} color={color} />
           ),
         }}
       />
 
+      {/* ------------- Weather ------------- */}
       <Tabs.Screen
-        name="weather"        // -> app/(main)/weather.tsx
+        name="weather"
         options={{
           title: 'Weather',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="weather-snowy-rainy" size={28} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="weather-partly-cloudy"
+              size={size}
+              color={color}
+            />
           ),
         }}
       />
 
+      {/* ------------- Settings ------------- */}
       <Tabs.Screen
-        name="settings"        // -> app/(main)/settings.tsx
+        name="settings"
         options={{
           title: 'Settings',
-          tabBarIcon: ({ color }) => (
-            <IconSymbol name="ge" size={28} color={color} />
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="settings" size={size} color={color} />
           ),
+        }}
+      />
+
+      {/* ------------- Tips ------------- */}
+      <Tabs.Screen
+        name="tips"
+        options={{
+          href: null,          // <- removes from tab bar
+          presentation: 'modal'
         }}
       />
     </Tabs>

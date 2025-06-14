@@ -1,4 +1,5 @@
 // app/(auth)/reset-password.tsx
+import { AppText } from '@/components/AppText';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { router } from 'expo-router';
@@ -10,7 +11,6 @@ import {
   Platform,
   SafeAreaView,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View,
@@ -69,10 +69,10 @@ export default function ResetPasswordScreen() {
             </View>
 
             {/* Title / subtitle */}
-            <Text style={styles.title}>Reset Password</Text>
-            <Text style={styles.subtitle}>
+            <AppText style={styles.title}>Reset Password</AppText>
+            <AppText style={styles.subtitle}>
               Enter your new password and confirm it below.
-            </Text>
+            </AppText>
 
             {/* New password */}
             <View style={styles.inputWrapper}>
@@ -102,7 +102,7 @@ export default function ResetPasswordScreen() {
               />
             </View>
             {errors.newPassword && (
-              <Text style={styles.error}>{errors.newPassword.message}</Text>
+              <AppText style={styles.error}>{errors.newPassword.message}</AppText>
             )}
 
             {/* Confirm password */}
@@ -133,7 +133,7 @@ export default function ResetPasswordScreen() {
               />
             </View>
             {errors.confirmPassword && (
-              <Text style={styles.error}>{errors.confirmPassword.message}</Text>
+              <AppText style={styles.error}>{errors.confirmPassword.message}</AppText>
             )}
 
             {/* Reset button */}
@@ -145,9 +145,9 @@ export default function ResetPasswordScreen() {
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <Text style={styles.btnText}>
+              <AppText style={styles.btnText}>
                 {isSubmitting ? 'Resetting…' : 'Reset Password'}
-              </Text>
+              </AppText>
             </TouchableOpacity>
           </View>
         </View>
@@ -155,7 +155,7 @@ export default function ResetPasswordScreen() {
 
       {/* Brand pinned bottom */}
       <View style={styles.brandContainer}>
-        <Text style={styles.brand}>AgriConnect</Text>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );
