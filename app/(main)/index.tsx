@@ -1,9 +1,14 @@
-import maleAvatar from '@/assets/avatars/male.png';
-import dailyTips from '@/assets/data/farmer_daily_tips.json';
-import { AppText } from '@/components/AppText';
-import { Feather, MaterialCommunityIcons, MaterialIcons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import maleAvatar from "@/assets/avatars/male.png";
+import dailyTips from "@/assets/data/farmer_daily_tips.json";
+import { AppText } from "@/components/AppText";
+import {
+  Feather,
+  FontAwesome,
+  MaterialCommunityIcons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+import { router } from "expo-router";
+import React, { useMemo, useState } from "react";
 import {
   Image,
   Keyboard,
@@ -15,22 +20,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-} from 'react-native';
-
+} from "react-native";
 
 /* ----- constants ----- */
-const STATUS_TOP = Platform.OS === 'android'
-  ? (StatusBar.currentHeight ?? 24) + 8
-  : 16;
-const user = { name: 'Janith', avatar: maleAvatar };
-
-
+const STATUS_TOP =
+  Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 16;
+const user = { name: "Janith", avatar: maleAvatar };
 
 export default function WelcomeScreen() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const randomTip = useMemo(
     () => dailyTips[Math.floor(Math.random() * dailyTips.length)],
-    [],
+    []
   );
 
   function submitSearch() {
@@ -41,7 +42,10 @@ export default function WelcomeScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.container}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.container}
+      >
         {/* ---------- Header Row ---------- */}
         <View style={styles.headerRow}>
           <Image source={user.avatar} style={styles.avatar} />
@@ -92,29 +96,64 @@ export default function WelcomeScreen() {
 
 /* ----- Quick‑link data ----- */
 const links = [
-  { title: 'News', path: '/news', desc: 'Latest agri news', icon: <Feather name="book-open" size={26} color="#2E7D32" /> },
-  { title: 'Weather', path: '/weather', desc: 'Forecast & alerts', icon: <MaterialCommunityIcons
-              name="weather-partly-cloudy" size={26} color="#2E7D32" /> },
-  { title: 'Market Prices', path: '/market', desc: 'Crop price updates', icon: <MaterialIcons name="price-change" size={26} color="#2E7D32" /> },
-  { title: 'Farming Tips', path: '/tips', desc: 'Daily tips & guides', icon: <MaterialCommunityIcons name="lightbulb" size={26} color="#2E7D32" /> },
-  { title: 'Task Manager', path: '/tasks', desc: 'Your to‑dos', icon: <Feather name="check-circle" size={26} color="#2E7D32" /> },
-  { title: 'Community', path: '/community', desc: 'Chat & forum', icon: <Feather name="users" size={26} color="#2E7D32" /> },
+  {
+    title: "News",
+    path: "/news",
+    desc: "Latest agri news",
+    icon: <Feather name="book-open" size={26} color="#2E7D32" />,
+  },
+  {
+    title: "Weather",
+    path: "/weather",
+    desc: "Forecast & alerts",
+    icon: (
+      <MaterialCommunityIcons
+        name="weather-partly-cloudy"
+        size={26}
+        color="#2E7D32"
+      />
+    ),
+  },
+  {
+    title: "Market Prices",
+    path: "/market",
+    desc: "Crop price updates",
+    icon: <MaterialIcons name="price-change" size={26} color="#2E7D32" />,
+  },
+  {
+    title: "Farming Tips",
+    path: "/tips",
+    desc: "Daily tips & guides",
+    icon: <MaterialCommunityIcons name="lightbulb" size={26} color="#2E7D32" />,
+  },
+  {
+    title: "Task Manager",
+    path: "/tasks",
+    desc: "Your to‑dos",
+    icon: <FontAwesome name="tasks" size={24} color="#2E7D32" />,
+  },
+  {
+    title: "Community",
+    path: "/community",
+    desc: "Chat & forum",
+    icon: <Feather name="users" size={26} color="#2E7D32" />,
+  },
 ];
 
 /* ----- Styles ----- */
-const BACKDROP = '#EAF8E5';
-const CARD_BG  = '#FFF';
+const BACKDROP = "#EAF8E5";
+const CARD_BG = "#FFF";
 
 const styles = StyleSheet.create({
-  screen:    { flex: 1, backgroundColor: BACKDROP, paddingTop: STATUS_TOP },
+  screen: { flex: 1, backgroundColor: BACKDROP, paddingTop: STATUS_TOP },
   container: { padding: 24, paddingBottom: 80 },
 
   /* header row */
-  headerRow:   { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  avatar:      { width: 72, height: 72, borderRadius: 36, marginRight: 16 },
+  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
+  avatar: { width: 72, height: 72, borderRadius: 36, marginRight: 16 },
   greetingCol: {},
-  greeting:    { fontSize: 20, fontWeight: '700', color: '#1B5E20' },
-  welcome:     { fontSize: 15, color: '#1B5E20' },
+  greeting: { fontSize: 20, fontWeight: "700", color: "#1B5E20" },
+  welcome: { fontSize: 15, color: "#1B5E20" },
 
   /* tip card */
   tipCard: {
@@ -122,19 +161,24 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     marginBottom: 24,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
     shadowRadius: 4,
     elevation: 2,
   },
-  tipTitle: { fontSize: 16, fontWeight: '700', marginBottom: 6, color: '#2E7D32' },
-  tipBody:  { fontSize: 14, color: '#555' },
+  tipTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    marginBottom: 6,
+    color: "#2E7D32",
+  },
+  tipBody: { fontSize: 14, color: "#555" },
 
   /* search */
   searchBox: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: CARD_BG,
     paddingHorizontal: 12,
     borderRadius: 12,
@@ -143,19 +187,32 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, marginLeft: 8, fontSize: 15 },
 
-  section: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#1B5E20' },
+  section: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 12,
+    color: "#1B5E20",
+  },
 
   /* grid */
-  grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  grid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
   card: {
-    width: '48%',
+    width: "48%",
     backgroundColor: CARD_BG,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    alignItems: 'center',
-  
+    alignItems: "center",
   },
-  cardTitle: { fontSize: 15, fontWeight: '700', marginTop: 12, color: '#1B5E20' },
-  cardDesc:  { fontSize: 12, color: '#555', marginTop: 4, textAlign: 'center' },
+  cardTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    marginTop: 12,
+    color: "#1B5E20",
+  },
+  cardDesc: { fontSize: 12, color: "#555", marginTop: 4, textAlign: "center" },
 });
