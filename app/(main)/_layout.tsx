@@ -50,6 +50,21 @@ export default function MainTabs() {
         }}
       />
 
+        {/* ------------- Commmunity ------------- */}
+      <Tabs.Screen
+        name="community"
+        options={{
+          title: 'Community',
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons
+              name="chat"
+              size={size}
+              color={color}
+            />
+          ),
+        }}
+      />
+
       {/* ------------- Settings ------------- */}
       <Tabs.Screen
         name="settings"
