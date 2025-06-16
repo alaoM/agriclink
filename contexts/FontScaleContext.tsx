@@ -9,7 +9,7 @@ export const FontScaleContext = createContext<{
 }>({ scale: 1, setScale: () => {} });
 
 export const FontScaleProvider: React.FC<{ children: React.ReactNode }> = ({
-  children,
+  children
 }) => {
   const [scale, setScale] = useState(1);
 
@@ -29,7 +29,7 @@ export const FontScaleProvider: React.FC<{ children: React.ReactNode }> = ({
 
   return (
     <FontScaleContext.Provider value={{ scale, setScale: updateScale }}>
-      {children}
+     <>{children}</> 
     </FontScaleContext.Provider>
   );
 };
