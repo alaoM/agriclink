@@ -1,3 +1,4 @@
+
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -24,6 +25,8 @@ import femaleAvatar from '@/assets/avatars/female.png';
 import maleAvatar from '@/assets/avatars/male.png';
 import { default as random1, default as random2, default as random3 } from '@/assets/avatars/rand1.jpg';
 import { AppText } from '@/components/AppText';
+import { useAuth } from '@/contexts/AuthContext';
+import { useMutation, useQuery } from '@tanstack/react-query';
 
 const STATUS_TOP = Platform.OS === 'android'
   ? (StatusBar.currentHeight ?? 24) + 8
@@ -32,6 +35,10 @@ const STATUS_TOP = Platform.OS === 'android'
 const RANDOM_POOL = [random1, random2, random3];
 
 export default function ProfileEditScreen() {
+  const { data, isLoading } = useProfileQuery();
+const updateProfile = useUpdateProfileMutation();
+const uploadPhoto = useUploadPhotoMutation();
+
   /* ----------------------------- avatar ----------------------------- */
   const [avatarUri, setAvatarUri] = useState(null);     // uri string from backend or picker
 
@@ -109,8 +116,8 @@ export default function ProfileEditScreen() {
 
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      mediaTypes: ['images'],
+      quality: 0.8,
     });
     if (!res.canceled) {
       setAvatarUri(res.assets[0].uri);
@@ -118,32 +125,54 @@ export default function ProfileEditScreen() {
   };
 
   const save = async () => {
+  try {
+    let avatarUrl = avatarUri;
+
+    // if user picked a new image (local URI)
+    if (avatarUri?.startsWith('file://')) {
+      avatarUrl = await uploadPhoto.mutateAsync(avatarUri);
+    }
+
     const payload = {
-      avatar: avatarUri,
       gender,
-      name,
-      email,
       phone,
       farmName,
       address,
       farmSize,
-      crops,
+      FarmingType: crops,
       experience,
-      about,
+      aboutMe: about,
+      avatar: avatarUrl,
     };
 
-    try {
-      // 👉 Replace with your real PUT/PATCH call
-      await fetch('https://api.example.com/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      router.back();
-    } catch (err) {
-      console.warn('[Profile] failed to save', err);
+    await updateProfile.mutateAsync(payload);
+    router.back();
+  } catch (err) {
+    console.warn('[Profile] failed to save', err);
+  }
+};
+
+  useEffect(() => {
+  if (data) {
+    setAvatarUri(data.avatar);
+    if (data.gender) {
+      setGender(data.gender);
+      setGenderPrefilled(true);
     }
-  };
+
+    setName(data.name ?? '');
+    setEmail(data.email ?? '');
+    setPhone(data.phone ?? '');
+
+    setFarmName(data.farmName ?? '');
+    setAddress(data.address ?? '');
+    setFarmSize(String(data.farmSize ?? ''));
+    setCrops(data.crops ?? '');
+    setExperience(String(data.experience ?? ''));
+    setAbout(data.about ?? '');
+  }
+}, [data]);
+
 
   /* ----------------------------- render ----------------------------- */
 
@@ -156,6 +185,10 @@ export default function ProfileEditScreen() {
       </SafeAreaView>
     );
   }
+
+
+
+
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -284,6 +317,71 @@ export default function ProfileEditScreen() {
     </SafeAreaView>
   );
 }
+
+
+
+const API_BASE = 'https://your-api.com/api/auth';
+
+export function useProfileQuery() {
+  const { token } = useAuth();
+  return useQuery({
+    queryKey: ['profile'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE}/profile`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error('Failed to fetch profile');
+      return res.json();
+    },
+  });
+}
+
+export function useUpdateProfileMutation() {
+  const { token } = useAuth();
+  return useMutation({
+    mutationFn: async (payload: any) => {
+      const res = await fetch(`${API_BASE}/update-profile`, {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('Failed to update profile');
+    },
+  });
+}
+
+export function useUploadPhotoMutation() {
+  const { token } = useAuth();
+  return useMutation({
+    mutationFn: async (uri: string) => {
+      const form = new FormData();
+      const filename = uri.split('/').pop();
+      const ext = filename?.split('.').pop();
+      const type = `image/${ext}`;
+
+      form.append('file', {
+        uri,
+        name: filename,
+        type,
+      } as any);
+
+      const res = await fetch(`${API_BASE}/upload-photo`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: form,
+      });
+      if (!res.ok) throw new Error('Failed to upload photo');
+      const json = await res.json();
+      return json.url; // assumes server returns { url: "https://..." }
+    },
+  });
+}
+
 
 /* ------------------------------------------------------------------ */
 /* Styles */

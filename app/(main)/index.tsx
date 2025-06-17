@@ -1,6 +1,7 @@
 import maleAvatar from "@/assets/avatars/male.png";
 import dailyTips from "@/assets/data/farmer_daily_tips.json";
 import { AppText } from "@/components/AppText";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Feather,
   FontAwesome,
@@ -25,9 +26,10 @@ import {
 /* ----- constants ----- */
 const STATUS_TOP =
   Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 16;
-const user = { name: "Janith", avatar: maleAvatar };
+
 
 export default function WelcomeScreen() {
+  const {user}  =useAuth();
   const [query, setQuery] = useState("");
   const randomTip = useMemo(
     () => dailyTips[Math.floor(Math.random() * dailyTips.length)],
@@ -40,6 +42,8 @@ export default function WelcomeScreen() {
     router.push(`/search?query=${encodeURIComponent(query.trim())}`);
   }
 
+
+  console.log("WelcomeScreen user", user);
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
@@ -48,9 +52,9 @@ export default function WelcomeScreen() {
       >
         {/* ---------- Header Row ---------- */}
         <View style={styles.headerRow}>
-          <Image source={user.avatar} style={styles.avatar} />
+          <Image source={user.avatar || maleAvatar} style={styles.avatar} />
           <View style={styles.greetingCol}>
-            <AppText style={styles.greeting}>Hello {user.name},</AppText>
+            <AppText style={styles.greeting}>Hello {user?.username},</AppText>
             <AppText style={styles.welcome}>Welcome!</AppText>
           </View>
         </View>
@@ -150,7 +154,7 @@ const styles = StyleSheet.create({
 
   /* header row */
   headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  avatar: { width: 72, height: 72, borderRadius: 36, marginRight: 16 },
+  avatar: { width: 92, height: 92, borderRadius: 46, marginRight: 16, borderColor: "#ccc", borderWidth: 2 },
   greetingCol: {},
   greeting: { fontSize: 20, fontWeight: "700", color: "#1B5E20" },
   welcome: { fontSize: 15, color: "#1B5E20" },

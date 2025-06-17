@@ -1,12 +1,14 @@
 // app/(auth)/reset-password.tsx
+// Allows a user to reset their password by submitting username/email + OTP + new password.
+
 import { AppText } from '@/components/AppText';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { router } from 'expo-router';
+import axios from 'axios';
+import { router, useLocalSearchParams } from 'expo-router';
 import React, { useState } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
@@ -15,17 +17,23 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
 
 /* ─────────────────── Validation ─────────────────── */
-const schema = yup.object().shape({
+const schema = yup.object({
+  otp: yup
+    .string()
+    .required('OTP is required')
+    .matches(/^[0-9]{6}$/,'OTP must be 6 digits'),
   newPassword: yup
     .string()
     .required('New password is required')
     .min(8, 'Min 8 characters')
     .matches(/[a-z]/, 'Need a lowercase letter')
     .matches(/[A-Z]/, 'Need an uppercase letter')
-    .matches(/\d/,  'Need a number'),
+    .matches(/\d/, 'Need a number')
+    .matches(/[^a-zA-Z0-9]/, 'Include a special character'),
   confirmPassword: yup
     .string()
     .required('Confirm your new password')
@@ -34,9 +42,34 @@ const schema = yup.object().shape({
 
 type FormData = yup.InferType<typeof schema>;
 
+/* ─────────────────── API ─────────────────── */
+const API_BASE = process.env.API_BASE;
+const ENDPOINT = `${API_BASE}/api/auth/reset-password`;
+
+async function resetPassword(identifier: string, otp: string, newPassword: string) {
+  // Some back‑ends want "username" even if you pass an e‑mail.
+  const payload = {
+    email: identifier, // alias for email/username
+    otp,
+    newPassword,
+  } as const;
+
+
+  console.log('Payload:', payload);
+
+ 
+  return axios.post(ENDPOINT, payload, {
+    headers: { 'Content-Type': 'application/json' },
+  });
+}
+
 /* ─────────────────── Screen ─────────────────── */
 export default function ResetPasswordScreen() {
-  const [showNew,     setShowNew]     = useState(false);
+  /** email or username arrives via query param */
+  const { email, username } = useLocalSearchParams<{ email?: string; username?: string }>();
+  const identifier = email ?? username;
+
+  const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
   const {
@@ -45,14 +78,23 @@ export default function ResetPasswordScreen() {
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: yupResolver(schema) });
 
-  async function onSubmit(data: FormData) {
+  const onSubmit = async ({ otp, newPassword }: FormData) => {
+    if (!identifier) {
+      Toast.show({ type: 'error', text1: 'Missing account identifier' });
+      return;
+    }
     try {
-      await fakeReset(data.newPassword);   // TODO replace with real API
+      await resetPassword(identifier, otp, newPassword);
+      Toast.show({ type: 'success', text1: 'Password reset!' });
       router.replace('/(auth)/login');
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Something went wrong');
+      Toast.show({
+        type: 'error',
+        text1: 'Reset failed',
+        text2: e?.response?.data?.message || e.message || 'Unknown error',
+      });
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -62,17 +104,35 @@ export default function ResetPasswordScreen() {
       >
         <View style={styles.centerBox}>
           <View style={styles.card}>
-            {/* Header */}
-            <View style={styles.headerRow}>
-              <Feather name="arrow-left" size={24} onPress={() => router.back()} />
-              <Ionicons name="help-circle-outline" size={24} />
-            </View>
+            {/* Back */}
+            <TouchableOpacity accessibilityLabel="Back" onPress={() => router.back()} style={styles.backBtn}>
+              <Feather name="arrow-left" size={24} color="#000" />
+            </TouchableOpacity>
 
-            {/* Title / subtitle */}
             <AppText style={styles.title}>Reset Password</AppText>
             <AppText style={styles.subtitle}>
-              Enter your new password and confirm it below.
+              Enter the 6‑digit OTP we sent and your new password.
             </AppText>
+
+            {/* OTP */}
+            <Controller
+              control={control}
+              name="otp"
+              defaultValue=""
+              render={({ field: { onChange, onBlur, value } }) => (
+                <TextInput
+                  placeholder="OTP (6 digits)"
+                  placeholderTextColor="#6B8E6B"
+                  keyboardType="number-pad"
+                  maxLength={6}
+                  style={[styles.input, errors.otp && styles.inputError]}
+                  onBlur={onBlur}
+                  onChangeText={onChange}
+                  value={value}
+                />
+              )}
+            />
+            {errors.otp && <AppText style={styles.error}>{errors.otp.message}</AppText>}
 
             {/* New password */}
             <View style={styles.inputWrapper}>
@@ -85,25 +145,16 @@ export default function ResetPasswordScreen() {
                     placeholder="New Password"
                     placeholderTextColor="#6B8E6B"
                     secureTextEntry={!showNew}
-                    style={[
-                      styles.input,
-                      errors.newPassword && styles.inputError,
-                    ]}
+                    style={[styles.innerInput, errors.newPassword && styles.inputError]}
                     onBlur={onBlur}
                     onChangeText={onChange}
                     value={value}
                   />
                 )}
               />
-              <Feather
-                name={showNew ? 'eye-off' : 'eye'}
-                size={20}
-                onPress={() => setShowNew((v) => !v)}
-              />
+              <Feather name={showNew ? 'eye-off' : 'eye'} size={20} onPress={() => setShowNew((v) => !v)} />
             </View>
-            {errors.newPassword && (
-              <AppText style={styles.error}>{errors.newPassword.message}</AppText>
-            )}
+            {errors.newPassword && <AppText style={styles.error}>{errors.newPassword.message}</AppText>}
 
             {/* Confirm password */}
             <View style={styles.inputWrapper}>
@@ -116,44 +167,30 @@ export default function ResetPasswordScreen() {
                     placeholder="Confirm New Password"
                     placeholderTextColor="#6B8E6B"
                     secureTextEntry={!showConfirm}
-                    style={[
-                      styles.input,
-                      errors.confirmPassword && styles.inputError,
-                    ]}
+                    style={[styles.innerInput, errors.confirmPassword && styles.inputError]}
                     onBlur={onBlur}
                     onChangeText={onChange}
                     value={value}
                   />
                 )}
               />
-              <Feather
-                name={showConfirm ? 'eye-off' : 'eye'}
-                size={20}
-                onPress={() => setShowConfirm((v) => !v)}
-              />
+              <Feather name={showConfirm ? 'eye-off' : 'eye'} size={20} onPress={() => setShowConfirm((v) => !v)} />
             </View>
-            {errors.confirmPassword && (
-              <AppText style={styles.error}>{errors.confirmPassword.message}</AppText>
-            )}
+            {errors.confirmPassword && <AppText style={styles.error}>{errors.confirmPassword.message}</AppText>}
 
             {/* Reset button */}
             <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                isSubmitting && styles.btnDisabled,
-              ]}
+              style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
-              <AppText style={styles.btnText}>
-                {isSubmitting ? 'Resetting…' : 'Reset Password'}
-              </AppText>
+              <AppText style={styles.btnText}>{isSubmitting ? 'Resetting…' : 'Reset Password'}</AppText>
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
 
-      {/* Brand pinned bottom */}
+      {/* Brand */}
       <View style={styles.brandContainer}>
         <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
@@ -161,28 +198,22 @@ export default function ResetPasswordScreen() {
   );
 }
 
-/* ─────────────────── Fake API ─────────────────── */
-async function fakeReset(pw: string) {
-  return new Promise((res) => setTimeout(res, 1500));
-}
-
 /* ─────────────────── Styles ─────────────────── */
-const PRIMARY   = '#00A000';
-const INPUT_BG  = '#E6F3E6';
-const BACKDROP  = '#EAF8E5';
-const CARD_RAD  = 16;
+const PRIMARY = '#00A000';
+const INPUT_BG = '#E6F3E6';
+const BACKDROP = '#EAF8E5';
+const CARD_RAD = 16;
 
 const styles = StyleSheet.create({
-  screen:       { flex: 1, backgroundColor: BACKDROP },
-  flex1:        { flex: 1 },
-  centerBox:    { flex: 1, justifyContent: 'center', padding: 16 },
+  screen: { flex: 1, backgroundColor: BACKDROP },
+  flex1: { flex: 1 },
+  centerBox: { flex: 1, justifyContent: 'center', padding: 16 },
 
-  card:         { backgroundColor: '#FFF', borderRadius: CARD_RAD, padding: 20 },
+  card: { backgroundColor: '#FFF', borderRadius: CARD_RAD, padding: 20 },
+  backBtn: { marginBottom: 12, alignSelf: 'flex-start' },
 
-  headerRow:    { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
-
-  title:        { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  subtitle:     { fontSize: 14, color: '#555', marginBottom: 24 },
+  title: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#555', marginBottom: 24 },
 
   inputWrapper: {
     flexDirection: 'row',
@@ -193,9 +224,18 @@ const styles = StyleSheet.create({
     marginBottom: 12,
     height: 48,
   },
-  input:        { flex: 1, fontSize: 16 },
-  inputError:   { borderWidth: 1, borderColor: 'red' },
-  error:        { color: 'red', marginTop: -8, marginBottom: 8 },
+  innerInput: { flex: 1, fontSize: 16 },
+
+  input: {
+    height: 48,
+    backgroundColor: INPUT_BG,
+    borderRadius: 6,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    marginBottom: 12,
+  },
+  inputError: { borderWidth: 1, borderColor: 'red' },
+  error: { color: 'red', marginTop: -8, marginBottom: 8 },
 
   primaryBtn: {
     height: 48,
@@ -205,8 +245,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  btnDisabled:  { opacity: 0.6 },
-  btnText:      { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 
   brandContainer: {
     position: 'absolute',
@@ -215,5 +255,5 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  brand:        { fontSize: 16, fontWeight: '500', color: '#4C794C' },
+  brand: { fontSize: 16, fontWeight: '500', color: '#4C794C' },
 });

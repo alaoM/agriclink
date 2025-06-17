@@ -12,15 +12,18 @@ import {
   View,
 } from 'react-native';
 
+
 import femaleAvatar from '@/assets/avatars/female.png';
 import maleAvatar from '@/assets/avatars/male.png';
 import { default as random1, default as random2, default as random3 } from '@/assets/avatars/rand1.jpg';
 import { AppText } from '@/components/AppText';
+import { useAuth } from '@/contexts/AuthContext';
 import { FontScaleContext } from '@/contexts/FontScaleContext';
 
 const RANDOM_POOL = [femaleAvatar, maleAvatar, random1, random2, random3];
 
 export default function SettingsScreen() {
+  const { signOut } = useAuth();
   const { scale, setScale } = useContext(FontScaleContext);
   const randomPlaceholder = useRef(
     RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)],
@@ -100,6 +103,9 @@ export default function SettingsScreen() {
       </SafeAreaView>
     );
   }
+
+
+
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -192,7 +198,8 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
-            // TODO: implement logout
+            signOut()
+            router.replace('/login');
           }}
         >
           <AppText style={styles.logoutText}>Log Out</AppText>
