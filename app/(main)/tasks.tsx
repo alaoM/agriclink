@@ -1,515 +1,271 @@
-import { AppText } from "@/components/AppText";
-import { useState } from "react";
+// app/(main)/tasks.tsx
+// Task manager – with Bearer‑token auth via useAuth()
+
+import { AppText } from '@/components/AppText';
+import { useAuth } from '@/contexts/AuthContext';
+import { Feather, MaterialIcons } from '@expo/vector-icons';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { differenceInCalendarDays, format, parseISO } from 'date-fns';
+import React, { useState } from 'react';
 import {
-  Animated,
-  Modal,
+  FlatList,
+  KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
-  ScrollView,
+  Pressable,
   StatusBar,
   StyleSheet,
   TextInput,
-  TouchableOpacity,
   View,
-} from "react-native";
+} from 'react-native';
 
-// Status bar height adjustment for Android
-const STATUS_TOP =
-  Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 16;
+import Modal from 'react-native-modal';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Toast from 'react-native-toast-message';
 
+/* ------------------------------------------------------------------
+   Types & helpers
+-------------------------------------------------------------------*/
 interface Task {
-  id: string;
+  _id: string;
   title: string;
   description: string;
-  completed: boolean;
+  status: 'pending' | 'completed';
   dueDate: string;
-  category: "Planting" | "Harvesting" | "Maintenance" | "Other";
 }
 
-export default function TaskScreen() {
-  const [tasks, setTasks] = useState<Task[]>([
-    {
-      id: "1",
-      title: "Plant Summer Crops",
-      description: "Prepare soil and plant tomatoes, peppers, and cucumbers",
-      completed: false,
-      dueDate: "2024-03-15",
-      category: "Planting",
-    },
-    {
-      id: "2",
-      title: "Irrigation System Check",
-      description: "Inspect and repair any leaks in the irrigation system",
-      completed: false,
-      dueDate: "2024-03-10",
-      category: "Maintenance",
-    },
-  ]);
-  const [newTask, setNewTask] = useState({
-    title: "",
-    description: "",
-    dueDate: "",
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
+
+
+ 
+
+const fetchTasks = async (token: string | null): Promise<Task[]> => { 
+  const res = await fetch(`${API_BASE}/api/tasks/getTasks`, {
+     headers: { Authorization: `Bearer ${token}` },
+     
+  }); 
+  if (!res.ok) throw new Error('Failed to load tasks');
+  const json = await res.json();
+return json.task; 
+};
+
+const createTask = async (
+  token: string | null,
+  payload: Omit<Task, '_id' | 'status'>,
+) => {
+  const res = await fetch(`${API_BASE}/api/tasks/createTasks`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json',
+       Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ ...payload, status: 'pending' }),
   });
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [slideAnim] = useState(new Animated.Value(0));
+  if (!res.ok) throw new Error('Failed to create task');
+  return res.json();
+};
 
-  const showModal = (task: Task) => {
-    setSelectedTask(task);
-    setModalVisible(true);
-    Animated.spring(slideAnim, {
-      toValue: 1,
-      useNativeDriver: true,
-    }).start();
+const updateTask = async (
+  token: string | null,
+  id: string,
+  payload: Partial<Task>,
+) => {
+  const res = await fetch(`${API_BASE}/api/tasks/updateTasks/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error('Failed to update task');
+  return res.json();
+};
+
+const deleteTask = async (token: string | null, id: string) => {
+  const res = await fetch(`${API_BASE}/api/tasks/deleteTasks/${id}`, {
+    method: 'DELETE',
+    headers: {Authorization: `Bearer ${token}` },
+  });
+  if (!res.ok) throw new Error('Failed to delete task');
+  return true;
+};
+
+/* ------------------------------------------------------------------
+   Component
+-------------------------------------------------------------------*/
+export default function TaskScreen() {
+  const { token } = useAuth();
+  const { top } = useSafeAreaInsets();
+  const queryClient = useQueryClient();
+
+  /* ---------------------- React Query hooks --------------------- */
+  const { data: tasks = [], isLoading } = useQuery({
+    queryKey: ['tasks', token],
+    queryFn: () => fetchTasks(token),
+    enabled: !!token,
+  });
+
+ 
+
+  const addMut = useMutation({
+    mutationFn: (payload: Omit<Task, '_id' | 'status'>) => createTask(token, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      Toast.show({ type: 'success', text1: 'Task added' });
+    },
+  });
+
+  const updateMut = useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: Partial<Task> }) => updateTask(token, id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+
+  const deleteMut = useMutation({
+    mutationFn: (id: string) => deleteTask(token, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['tasks'] }),
+  });
+
+  const getDueStatus = (dueDate: string, status: Task['status']) => {
+  const due = parseISO(dueDate);
+  const today = new Date();
+
+  const diff = differenceInCalendarDays(due, today);
+  if (status === 'completed') return `Completed by ${format(due, 'MMM d')}`;
+  if (diff > 0) return `Due in ${diff} day${diff > 1 ? 's' : ''}`;
+  if (diff === 0) return 'Due today';
+  return `Overdue by ${Math.abs(diff)} day${Math.abs(diff) > 1 ? 's' : ''}`;
+};
+
+  /* ------------------------ local state ------------------------- */
+  const [sheetVisible, setSheetVisible] = useState(false);
+  const [editing, setEditing] = useState<Task | null>(null);
+  const [form, setForm] = useState({ title: '', description: '', dueDate: '' });
+  const [showDatePicker,setShowDatePicker] = useState(false);
+
+  const resetForm = () => setForm({ title: '', description: '', dueDate: '' });
+  const openSheetForNew = () => {
+    resetForm();
+    setEditing(null);
+    setSheetVisible(true);
+  };
+  const openSheetForEdit = (t: Task) => {
+    setEditing(t);
+    setForm({ title: t.title, description: t.description, dueDate: t.dueDate.slice(0, 10) });
+    setSheetVisible(true);
+  };
+  const closeSheet = () => setSheetVisible(false);
+
+  const saveTask = () => {
+    if (!form.title.trim()) return Toast.show({ type: 'error', text1: 'Title is required' });
+    if (editing) {
+      updateMut.mutate({ id: editing._id, payload: { ...form } });
+    } else {
+      addMut.mutate(form);
+    }
+    closeSheet();
   };
 
-  const hideModal = () => {
-    Animated.timing(slideAnim, {
-      toValue: 0,
-      duration: 200,
-      useNativeDriver: true,
-    }).start(() => {
-      setModalVisible(false);
-      setSelectedTask(null);
-    });
-  };
-
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter((task) => task.id !== id));
-    hideModal();
-  };
-
-  const editTask = (task: Task) => {
-    setTasks(tasks.map((t) => (t.id === task.id ? task : t)));
-    hideModal();
-  };
-
-  const toggleTask = (id: string) => {
-    setTasks(
-      tasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
-      )
-    );
-  };
-
-  const addTask = () => {
-    if (newTask.title.trim() === "") return;
-
-    const task: Task = {
-      id: Date.now().toString(),
-      title: newTask.title,
-      description: newTask.description,
-      completed: false,
-      dueDate: newTask.dueDate,
-      category: "Other",
-    };
-
-    setTasks([...tasks, task]);
-    setNewTask({ title: "", description: "", dueDate: "" });
-  };
+  const renderTask = ({ item }: { item: Task }) => (
+    <Pressable
+      style={[styles.card, item.status === 'completed' && styles.cardDone]}
+      onPress={() => openSheetForEdit(item)}
+    >
+      <View style={styles.cardLeft}>
+        <Feather
+          name={item.status === 'completed' ? 'check-circle' : 'circle'}
+          size={22}
+          color={item.status === 'completed' ? '#27ae60' : '#95a5a6'}
+          onPress={() => updateMut.mutate({ id: item._id, payload: { status: item.status === 'completed' ? 'pending' : 'completed' } })}
+        />
+        <View style={styles.cardTextBox}>
+  <AppText style={styles.cardTitle}>{item.title}</AppText>
+  <AppText style={styles.cardDesc}>{item.description}</AppText>
+  <AppText style={styles.cardDue}>{getDueStatus(item.dueDate, item.status)}</AppText>
+</View>
+      </View>
+      <MaterialIcons name="delete" size={22} color="#e74c3c" onPress={() => deleteMut.mutate(item._id)} />
+    </Pressable>
+  );
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <AppText style={styles.heading}>Farm Tasks</AppText>
-
-        {/* Add New Task Section */}
-        <View style={styles.addTaskCard}>
-          <AppText style={styles.sectionTitle}>Add New Task</AppText>
-          <TextInput
-            style={styles.input}
-            placeholder="Task Title"
-            placeholderTextColor="#999"
-            value={newTask.title}
-            onChangeText={(text) => setNewTask({ ...newTask, title: text })}
-          />
-          <TextInput
-            style={[styles.input, styles.descriptionInput]}
-            placeholder="Task Description"
-            placeholderTextColor="#999"
-            multiline
-            value={newTask.description}
-            onChangeText={(text) =>
-              setNewTask({ ...newTask, description: text })
-            }
-          />
-          <TextInput
-            style={styles.input}
-            placeholder="Due Date (YYYY-MM-DD)"
-            placeholderTextColor="#999"
-            value={newTask.dueDate}
-            onChangeText={(text) => setNewTask({ ...newTask, dueDate: text })}
-          />
-          <TouchableOpacity style={styles.addButton} onPress={addTask}>
-            <AppText style={styles.addButtonText}>Add Task</AppText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Tasks List */}
-        <AppText style={styles.sectionTitle}>
-          Your Tasks ({tasks.length})
-        </AppText>
-        {tasks.map((task) => (
-          <TouchableOpacity
-            key={task.id}
-            style={[styles.taskCard, task.completed && styles.completedCard]}
-            onPress={() => showModal(task)}
-          >
-            <View style={styles.taskHeader}>
-              <AppText style={styles.title}>{task.title}</AppText>
-              <View
-                style={[
-                  styles.categoryTag,
-                  styles[
-                    `${task.category.toLowerCase()}Tag` as keyof typeof styles
-                  ],
-                ]}
-              >
-                <AppText style={styles.categoryText}>{task.category}</AppText>
-              </View>
-            </View>
-            <AppText style={styles.description}>{task.description}</AppText>
-            <View style={styles.taskFooter}>
-              <AppText style={styles.dueDate}>Due: {task.dueDate}</AppText>
-              <View style={styles.statusContainer}>
-                <View
-                  style={[
-                    styles.statusIndicator,
-                    task.completed
-                      ? styles.completedIndicator
-                      : styles.pendingIndicator,
-                  ]}
-                />
-                <AppText style={styles.statusText}>
-                  {task.completed ? "Completed" : "Pending"}
-                </AppText>
-              </View>
-            </View>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      {/* Task Actions Modal */}
-      {/* Task Actions Modal */}
+    <View style={[styles.screen, { paddingTop: top + 8 }]}>
+      <StatusBar barStyle="dark-content" />
+      <AppText style={styles.heading}>Your Tasks</AppText>
+      <FlatList
+        data={tasks}
+        keyExtractor={(item) => item._id}
+        renderItem={renderTask}
+        contentContainerStyle={styles.listContent}
+        refreshing={isLoading}
+        onRefresh={() => queryClient.invalidateQueries({ queryKey: ['tasks'] })}
+      />
+      {/* FAB */}
+      <Pressable style={styles.fab} onPress={openSheetForNew}>
+        <Feather name="plus" size={28} color="#fff" />
+      </Pressable>
+      {/* Bottom sheet */}
       <Modal
-        visible={modalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={hideModal}
+        isVisible={sheetVisible}
+        onBackdropPress={closeSheet}
+        style={styles.modal}
+        swipeDirection="down"
+        onSwipeComplete={closeSheet}
       >
-        <View style={styles.modalOverlay}>
-          <TouchableOpacity
-            style={styles.modalOverlayBackground}
-            activeOpacity={1}
-            onPress={hideModal}
-          >
-            <Animated.View
-              style={[
-                styles.modalContent,
-                {
-                  transform: [
-                    {
-                      translateY: slideAnim.interpolate({
-                        inputRange: [0, 1],
-                        outputRange: [600, 0],
-                      }),
-                    },
-                  ],
-                },
-              ]}
-            >
-              {selectedTask && (
-                <>
-                  <View style={styles.modalHeader}>
-                    <AppText style={styles.modalTitle}>
-                      {selectedTask.title}
-                    </AppText>
-                    <TouchableOpacity
-                      onPress={hideModal}
-                      style={styles.closeButton}
-                    >
-                      <AppText style={styles.closeButtonText}>×</AppText>
-                    </TouchableOpacity>
-                  </View>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.sheet}>
+            <View style={styles.handle} />
+            <AppText style={styles.sheetTitle}>{editing ? 'Edit Task' : 'New Task'}</AppText>
+            <TextInput style={styles.input} placeholder="Title" value={form.title} onChangeText={(t) => setForm({ ...form, title: t })} />
+            <TextInput style={[styles.input, styles.multiline]} placeholder="Description" multiline value={form.description} onChangeText={(t) => setForm({ ...form, description: t })} />
+              
 
-                  <ScrollView style={styles.modalScrollContent}>
-                    <View style={styles.modalDetails}>
-                      {/* Modal content remains the same */}
-                    </View>
-                  </ScrollView>
-
-                  <View style={styles.modalActions}>
-                    {/* Action buttons remain the same */}
-                  </View>
-                </>
-              )}
-            </Animated.View>
-          </TouchableOpacity>
-        </View>
+             <Pressable onPress={() => setShowDatePicker(true)} style={styles.input}>
+              <AppText>{form.dueDate || 'Select Due Date'}</AppText>
+            </Pressable>
+            {showDatePicker && (
+              <DateTimePicker
+                value={form.dueDate ? new Date(form.dueDate) : new Date()}
+                mode="date"
+                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                onChange={(event, selectedDate) => {
+                  setShowDatePicker(Platform.OS === 'ios');
+                  if (selectedDate) {
+                    const iso = selectedDate.toISOString().slice(0, 10);
+                    setForm({ ...form, dueDate: iso });
+                  }
+                }}
+              />
+            )}
+            
+            <Pressable style={styles.saveBtn} onPress={saveTask}>
+              <AppText style={styles.saveText}>{editing ? 'Update Task' : 'Create Task'}</AppText>
+            </Pressable>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const CARD_RAD = 12;
-const BACKDROP = "#f8f9fa";
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: BACKDROP,
-    paddingTop: STATUS_TOP,
-  },
-  scroll: {
-    flexGrow: 1,
-    padding: 20,
-    paddingBottom: 60,
-  },
-  heading: {
-    fontSize: 28,
-    fontWeight: "700",
-    marginBottom: 24,
-    color: "#2c3e50",
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#34495e",
-    marginBottom: 16,
-    marginTop: 8,
-  },
-  addTaskCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: CARD_RAD,
-    padding: 20,
-    marginBottom: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  input: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 14,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: "#e9ecef",
-    fontSize: 16,
-    color: "#2c3e50",
-  },
-  descriptionInput: {
-    height: 100,
-    textAlignVertical: "top",
-  },
-  addButton: {
-    backgroundColor: "#27ae60",
-    borderRadius: 8,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 8,
-    shadowColor: "#27ae60",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  taskCard: {
-    backgroundColor: "#ffffff",
-    borderRadius: CARD_RAD,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  completedCard: {
-    backgroundColor: "#f8f9fa",
-    borderLeftWidth: 4,
-    borderLeftColor: "#27ae60",
-  },
-  taskHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  title: {
-    fontSize: 18,
-    fontWeight: "600",
-    flex: 1,
-    color: "#2c3e50",
-  },
-  description: {
-    fontSize: 15,
-    color: "#7f8c8d",
-    marginBottom: 12,
-    lineHeight: 22,
-  },
-  categoryTag: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    marginLeft: 8,
-  },
-  plantingTag: {
-    backgroundColor: "#e8f6f3",
-  },
-  harvestingTag: {
-    backgroundColor: "#fef9e7",
-  },
-  maintenanceTag: {
-    backgroundColor: "#eaf2f8",
-  },
-  otherTag: {
-    backgroundColor: "#f5eef8",
-  },
-  categoryText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#2c3e50",
-  },
-  taskFooter: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 8,
-  },
-  dueDate: {
-    fontSize: 13,
-    color: "#7f8c8d",
-    fontWeight: "500",
-  },
-  statusContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  statusIndicator: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 6,
-  },
-  pendingIndicator: {
-    backgroundColor: "#f39c12",
-  },
-  completedIndicator: {
-    backgroundColor: "#27ae60",
-  },
-  statusText: {
-    fontSize: 13,
-    color: "#7f8c8d",
-    fontWeight: "500",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "flex-end",
-  },
-  modalOverlayBackground: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.4)",
-    justifyContent: "flex-end",
-    ...StyleSheet.absoluteFillObject,
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
-    maxHeight: "80%",
-  },
-  modalContainer: {
-    flex: 1,
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ecf0f1",
-  },
-  modalTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    flex: 1,
-    color: "#2c3e50",
-  },
-  closeButton: {
-    padding: 8,
-    marginLeft: 10,
-  },
-  closeButtonText: {
-    fontSize: 28,
-    color: "#7f8c8d",
-    lineHeight: 28,
-  },
-  modalScrollContent: {
-    paddingHorizontal: 20,
-  },
-  modalActions: {
-    padding: 20,
-    paddingTop: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#ecf0f1",
-  },
-  actionButton: {
-    borderRadius: 8,
-    padding: 16,
-    alignItems: "center",
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  actionButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
-  },
-  completeButton: {
-    backgroundColor: "#27ae60",
-  },
-  editButton: {
-    backgroundColor: "#3498db",
-  },
-  deleteButton: {
-    backgroundColor: "#e74c3c",
-  },
-  modalDetails: {
-    paddingVertical: 20,
-  },
-  modalLabel: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#7f8c8d",
-    marginBottom: 6,
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  modalDescription: {
-    fontSize: 16,
-    color: "#2c3e50",
-    marginBottom: 20,
-    lineHeight: 24,
-  },
-  modalDate: {
-    fontSize: 16,
-    color: "#2c3e50",
-    marginBottom: 20,
-  },
+  screen: { flex: 1, backgroundColor: '#F8F9FA' },
+  heading: { fontSize: 24, fontWeight: '700', marginHorizontal: 20, marginBottom: 12, color: '#2c3e50' },
+  listContent: { paddingHorizontal: 20, paddingBottom: 80 },
+  /* card */
+  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', borderRadius: CARD_RAD, padding: 16, marginBottom: 12, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 1 },
+  cardDone: { opacity: 0.5 },
+  cardLeft: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  cardTextBox: { marginLeft: 12, flex: 1 },
+  cardTitle: { fontSize: 16, fontWeight: '600', color: '#2c3e50' },
+  cardDesc: { fontSize: 13, color: '#7f8c8d', marginTop: 2 },
+  cardDue: { fontSize: 12, color: '#c0392b', marginTop: 2 },
+
+  /* FAB */
+  fab: { position: 'absolute', right: 24, bottom: 40, width: 56, height: 56, borderRadius: 28, backgroundColor: '#27ae60', alignItems: 'center', justifyContent: 'center', elevation: 4, shadowColor: '#27ae60', shadowOpacity: 0.3, shadowRadius: 4 },
+  /* modal / sheet */
+  modal: { justifyContent: 'flex-end', margin: 0 },
+  sheet: { backgroundColor: '#fff', borderTopLeftRadius: 20, borderTopRightRadius: 20, paddingHorizontal: 24, paddingTop: 8, paddingBottom: 32 },
+  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#ccc', marginVertical: 8 },
+  sheetTitle: { fontSize: 18, fontWeight: '600', textAlign: 'center', marginVertical: 12, color: '#34495e' },
+  input: { backgroundColor: '#F1F3F4', borderRadius: 8, padding: 14, marginBottom: 12, fontSize: 16 },
+  multiline: { height: 100, textAlignVertical: 'top' },
+  saveBtn: { backgroundColor: '#27ae60', borderRadius: 8, paddingVertical: 14, alignItems: 'center', marginTop: 4 },
+  saveText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

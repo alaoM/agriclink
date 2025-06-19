@@ -6,18 +6,18 @@ import axios, { AxiosResponse } from 'axios';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Controller,
-  useForm
+    Controller,
+    useForm
 } from 'react-hook-form';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
@@ -49,7 +49,7 @@ const schema = yup.object().shape({
 type FormData = yup.InferType<typeof schema>;
 
 /* ─────────────────── API ─────────────────── */
-const API_BASE = process.env.API_BASE;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 export async function registerUser<T = unknown>(
   payload: Record<string, unknown>,
 ): Promise<AxiosResponse<T>> {

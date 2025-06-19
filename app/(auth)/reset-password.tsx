@@ -43,7 +43,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 /* ─────────────────── API ─────────────────── */
-const API_BASE = process.env.API_BASE;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 const ENDPOINT = `${API_BASE}/api/auth/reset-password`;
 
 async function resetPassword(identifier: string, otp: string, newPassword: string) {
@@ -53,9 +53,7 @@ async function resetPassword(identifier: string, otp: string, newPassword: strin
     otp,
     newPassword,
   } as const;
-
-
-  console.log('Payload:', payload);
+ 
 
  
   return axios.post(ENDPOINT, payload, {

@@ -13,9 +13,10 @@ const queryClient = new QueryClient();
 
 export default function RootLayout() {
   return (
+    <QueryClientProvider client={queryClient}>
     <GestureHandlerRootView style={{ flex: 1 }}>
       <FontScaleProvider>
-       <QueryClientProvider client={queryClient}>     
+          
           <AuthProvider>
             <Stack screenOptions={{ headerShown: false }}>
               {/* Splash Screen */}
@@ -42,8 +43,9 @@ export default function RootLayout() {
             </Stack>
             <Toast config={toastConfig} />
           </AuthProvider>
-       </QueryClientProvider> 
+     
       </FontScaleProvider>
     </GestureHandlerRootView>
+    </QueryClientProvider>
   );
 }

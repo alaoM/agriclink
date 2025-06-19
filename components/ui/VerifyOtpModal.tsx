@@ -4,15 +4,15 @@ import axios from 'axios';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-  Alert,
-  KeyboardAvoidingView,
-  Modal,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    Alert,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 
 /* ─────────────────── Config ─────────────────── */
@@ -22,7 +22,7 @@ const BACKDROP = '#EAF8E5';
 const CARD_RAD = 16;
 const BOX_COUNT = 6;
 
-const API_BASE = process.env.API_BASE;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 
 /* ─────────────────── Screen ─────────────────── */
 export default function VerifyOtpModal({apiPath, apiPurpose, nextUri, otpsentto}: {apiPath: string, apiPurpose: string}) {

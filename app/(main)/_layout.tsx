@@ -21,9 +21,7 @@ export default function MainTabs() {
         <ActivityIndicator size="large" />
       </View>
     );
-  }
-console.log("token", token)
-console.log("loading", loading)
+  } 
   /* ───────────── STATE 2: not signed in ───────────── */
   if (!token) {
     // Redirect un‑authenticated users straight into the auth stack

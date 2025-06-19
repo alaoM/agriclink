@@ -41,8 +41,10 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 /* ─────────────────── API ─────────────────── */
-const API_BASE = process.env.API_BASE;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 const ENDPOINT = `${API_BASE}/api/auth/login`;
+
+
 
 async function loginRequest(username: string, password: string, keepSignedIn: boolean) {
   const payload = {
