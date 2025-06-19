@@ -135,7 +135,7 @@ const links = [
   },
   {
     title: "Market Prices",
-    path: "/market",
+    path: "/marketplace",
     desc: "Crop price updates",
     icon: <MaterialIcons name="price-change" size={26} color="#2E7D32" />,
   },
