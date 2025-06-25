@@ -44,6 +44,7 @@ export default function VerifyEmail() {
   }
 
   return (
+    
     <SafeAreaView style={styles.screen}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}

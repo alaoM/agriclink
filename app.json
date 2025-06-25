@@ -16,7 +16,11 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
+      "package": "com.mikexenon.colagri"
     },
     "web": {
       "bundler": "metro",
@@ -43,6 +47,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "e695dac5-1372-4339-a4b5-c1d6fe2004f8"
+      }
     }
   }
 }

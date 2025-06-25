@@ -9,68 +9,69 @@ import {
   StyleSheet,
   Switch,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
+
 
 import femaleAvatar from '@/assets/avatars/female.png';
 import maleAvatar from '@/assets/avatars/male.png';
 import { default as random1, default as random2, default as random3 } from '@/assets/avatars/rand1.jpg';
 import { AppText } from '@/components/AppText';
+import { useAuth } from '@/contexts/AuthContext';
 import { FontScaleContext } from '@/contexts/FontScaleContext';
+import { usePushPreference } from '@/hooks/usePush';
+import { useProfileQuery } from '../(auth)/profilehelper';
 
 const RANDOM_POOL = [femaleAvatar, maleAvatar, random1, random2, random3];
 
 export default function SettingsScreen() {
+  const { data: user, isLoading: profileLoading } = useProfileQuery();
+
+  const { signOut } = useAuth();
   const { scale, setScale } = useContext(FontScaleContext);
   const randomPlaceholder = useRef(
     RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)],
   );
   const [avatarFailed, setAvatarFailed] = useState(false);
 
-  const [loading, setLoading] = useState(true);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
   const [twoFAEnabled, setTwoFAEnabled] = useState(false);
-  const [user, setUser] = useState({
-    avatar: null,
-    name: '',
-    email: '',
-    phone: '',
-  });
+
+  const [avatarUri, setAvatarUri] = useState<string | null>(null); // server URL or local URI
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
 
   useEffect(() => {
-    (async () => {
-      try {
-        const res = await fetch('https://api.example.com/settings');
-        const data = await res.json();
+    if (!user) return;
 
-        setNotificationsEnabled(Boolean(data.notificationsEnabled));
-        setTwoFAEnabled(Boolean(data.twoFAEnabled));
-        setUser({
-          avatar: data.avatar || null,
-          name: data.name,
-          email: data.email,
-          phone: data.phone,
-        });
-      } catch (err) {
-        console.warn('[Settings] failed to load', err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    const resolvedAvatar = user.user.profilePhoto ?
+      user.user.profilePhoto
+      : null;
+    setAvatarUri(resolvedAvatar);
 
-  const toggleNotifications = async (value) => {
-    setNotificationsEnabled(value);
-    try {
-      await fetch('https://api.example.com/settings/notifications', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ enabled: value }),
-      });
-    } catch (err) {
-      console.warn('[Settings] notifications update failed', err);
-    }
-  };
+
+
+    setFirstName(user.user.firstName ?? '');
+    setLastName(user.user.lastName ?? '');
+    setEmail(user.user.email ?? '');
+
+
+  }, [user]);
+
+  /*  const toggleNotifications = async (value) => {
+     setNotificationsEnabled(value);
+     try {
+       await fetch('https://api.example.com/settings/notifications', {
+         method: 'PUT',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify({ enabled: value }),
+       });
+     } catch (err) {
+       console.warn('[Settings] notifications update failed', err);
+     }
+   }; */
+  const { enabled: notificationsEnabled, toggle: toggleNotifications, loading: notifBusy } =
+    usePushPreference(user?.user.notificationsEnabled);
 
   const toggleTwoFA = async (value) => {
     if (value) {
@@ -91,7 +92,7 @@ export default function SettingsScreen() {
     }
   };
 
-  if (loading) {
+  if (profileLoading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={styles.center}>
@@ -100,6 +101,7 @@ export default function SettingsScreen() {
       </SafeAreaView>
     );
   }
+
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -111,17 +113,17 @@ export default function SettingsScreen() {
             <View style={styles.avatarWrapper}>
               <Image
                 source={
-                  user.avatar && !avatarFailed
-                    ? { uri: user.avatar }
+                  avatarUri && !avatarFailed
+                    ? { uri: avatarUri }
                     : randomPlaceholder.current
                 }
                 onError={() => setAvatarFailed(true)}
                 style={styles.avatar}
               />
             </View>
-            <AppText style={styles.name}>{user.name}</AppText>
-            <AppText style={styles.email}>{user.email}</AppText>
-            <AppText style={styles.phone}>{user.phone}</AppText>
+            <AppText style={styles.name}>{firstName} {lastName}</AppText>
+            <AppText style={styles.email}>{email}</AppText>
+            {/* <AppText style={styles.phone}>{phone}</AppText> */}
           </View>
 
           <TouchableOpacity
@@ -140,12 +142,13 @@ export default function SettingsScreen() {
             <Switch
               value={notificationsEnabled}
               onValueChange={toggleNotifications}
+              disabled={notifBusy}
             />
           </View>
-            <View style={[styles.row, { marginTop: 16 }]}>
+          <View style={[styles.row, { marginTop: 16 }]}>
             <AppText style={styles.label}>Font size</AppText>
           </View>
-          <Slider 
+          <Slider
             minimumValue={0.8}
             maximumValue={1.4}
             step={0.05}
@@ -192,7 +195,8 @@ export default function SettingsScreen() {
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={() => {
-            // TODO: implement logout
+            signOut()
+            router.replace('/login');
           }}
         >
           <AppText style={styles.logoutText}>Log Out</AppText>

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -16,129 +16,137 @@ import {
   View,
 } from 'react-native';
 
-
 /* ------------------------------------------------------
    Local fallback avatars (adjust paths or alias to taste)
 ---------------------------------------------------------*/
-import femaleAvatar from '@/assets/avatars/female.png';
-import maleAvatar from '@/assets/avatars/male.png';
-import { default as random1, default as random2, default as random3 } from '@/assets/avatars/rand1.jpg';
+import random1 from '@/assets/avatars/rand1.jpg'; /*
+import random2 from '@/assets/avatars/rand2.jpg';
+import random3 from '@/assets/avatars/rand3.jpg'; */
+
 import { AppText } from '@/components/AppText';
 
-const STATUS_TOP = Platform.OS === 'android'
-  ? (StatusBar.currentHeight ?? 24) + 8
-  : 16;
+import {
+  useProfileQuery,
+  useUpdateProfileMutation,
+  useUploadPhotoMutation,
+} from '../(auth)/profilehelper';
 
-const RANDOM_POOL = [random1, random2, random3];
+/* ------------------------------------------------------------------
+   Constants
+-------------------------------------------------------------------*/
+const STATUS_TOP = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 16;
+const RANDOM_POOL = [random1, /* random2, random3 */];
+const INPUT_BG = '#E6F3E6';
+const BACKDROP = '#EAF8E5';
+const CARD_RAD = 16;
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 
+/* ------------------------------------------------------------------
+   Component
+-------------------------------------------------------------------*/
 export default function ProfileEditScreen() {
+  /* ----------------------------- queries & mutations ----------------------------- */
+  const { data: user, isLoading: profileLoading } = useProfileQuery();
+  const updateProfile = useUpdateProfileMutation();
+  const { mutateAsync: uploadPhoto, isPending: uploadPending } = useUploadPhotoMutation();
+
   /* ----------------------------- avatar ----------------------------- */
-  const [avatarUri, setAvatarUri] = useState(null);     // uri string from backend or picker
+  const [avatarUri, setAvatarUri] = useState<string | null>(null); // server URL or local URI
 
   /* ----------------------------- profile ---------------------------- */
-  const [gender, setGender] = useState(null);           // 'male' | 'female' | null
+  const [gender, setGender] = useState<'male' | 'female' | null>(null);
   const [genderPrefilled, setGenderPrefilled] = useState(false);
-  const [name, setName]     = useState('');
-  const [email, setEmail]   = useState('');
-  const [phone, setPhone]   = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
 
   /* ----------------------------- farm ------------------------------- */
-  const [farmName,   setFarmName]   = useState('');
-  const [address,    setAddress]    = useState('');
-  const [farmSize,   setFarmSize]   = useState('');
-  const [crops,      setCrops]      = useState('');
+  const [farmName, setFarmName] = useState('');
+  const [address, setAddress] = useState('');
+  const [farmSize, setFarmSize] = useState('');
+  const [crops, setCrops] = useState('');
   const [experience, setExperience] = useState('');
-  const [about,      setAbout]      = useState('');
-
-  /* ----------------------------- ui state --------------------------- */
-  const [loading, setLoading] = useState(true);
-
-  /** Fetch profile on mount */
-  useEffect(() => {
-    (async () => {
-      try {
-        // 👉 Replace with your real endpoint / SDK call
-        const res  = await fetch('https://api.example.com/profile');
-        const data = await res.json();
-
-        /* ---- hydrate state from backend ---- */
-        if (data.avatar)  setAvatarUri(data.avatar);
-        if (data.gender) {
-          setGender(data.gender);
-          setGenderPrefilled(true);
-        }
-
-        setName(data.name ?? '');
-        setEmail(data.email ?? '');
-        setPhone(data.phone ?? '');
-
-        setFarmName(data.farmName ?? '');
-        setAddress(data.address ?? '');
-        setFarmSize(String(data.farmSize ?? ''));
-        setCrops(data.crops ?? '');
-        setExperience(String(data.experience ?? ''));
-        setAbout(data.about ?? '');
-      } catch (err) {
-        console.warn('[Profile] failed to load', err);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+  const [about, setAbout] = useState('');
 
   /* ------ choose ONE placeholder for the life of the component ------ */
   const randomPlaceholder = useRef(
     RANDOM_POOL[Math.floor(Math.random() * RANDOM_POOL.length)],
   );
 
-  /** Decide which image <Image/> will finally render
-   * 1. backend or user‑picked photo
-   * 2. gender default (male/female)
-   * 3. fixed random placeholder
-   */
-  const avatarSource = useMemo(() => {
-    if (avatarUri) {
-      return { uri: avatarUri };
+  /* ----------------------------- hydrate state ---------------------- */
+  useEffect(() => {
+    if (!user) return;
+
+    // The API returns only a relative path for the avatar. Pre‑pend the server base if needed.
+   
+     const resolvedAvatar = user.user.profilePhoto ?
+      user.user.profilePhoto
+      : null;
+    setAvatarUri(resolvedAvatar);
+
+    if (user.user.gender) {
+      setGender(user.user.gender);
+      setGenderPrefilled(true);
     }
-    if (gender === 'male')   return maleAvatar;
-    if (gender === 'female') return femaleAvatar;
-    return randomPlaceholder.current; // local asset -> no {uri}
-  }, [avatarUri, gender]);
+
+    setFirstName(user.user.firstName ?? '');
+    setLastName(user.user.lastName ?? '');
+    setEmail(user.user.email ?? '');
+    setPhone(user.user.phone ? String(user.user.phone) : user.user.phone ?? '');
+
+    setFarmName(user.user.farmName ?? '');
+    setAddress(user.user.address ?? '');
+    setFarmSize(String(user.user.farmSize ?? ''));
+    setCrops(user.crops ?? '');
+    setExperience(String(user.user.experience ?? ''));
+    setAbout(user.user.aboutMe ?? '');
+  }, [user]);
+
+  const [avatarFailed, setAvatarFailed] = useState(false);
+
+  
 
   /* ----------------------------- actions ---------------------------- */
-
   const pickImage = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      quality: 0.5,
+      mediaTypes: ['images'],
+      quality: 0.8,
     });
-    if (!res.canceled) {
-      setAvatarUri(res.assets[0].uri);
+
+    if (res.canceled) return; // user backed out
+
+    const localUri = res.assets[0].uri;
+    setAvatarUri(localUri); // quick local preview
+
+    try {
+      const remoteUrl = await uploadPhoto(localUri);
+      setAvatarUri(remoteUrl); // swap to CDN URL
+    } catch (err) {
+      console.error('[Profile] Upload failed', err);
+
     }
   };
 
   const save = async () => {
-    const payload = {
-      avatar: avatarUri,
-      gender,
-      name,
-      email,
-      phone,
-      farmName,
-      address,
-      farmSize,
-      crops,
-      experience,
-      about,
-    };
-
     try {
-      // 👉 Replace with your real PUT/PATCH call
-      await fetch('https://api.example.com/profile', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+
+      const payload = {
+        firstName,
+        lastName,
+        gender,
+        phone,
+        address,
+        farmName,
+        farmSize: farmSize.trim() ? Number(farmSize) : undefined,
+        // crops,
+        experience: experience.trim() ? Number(experience) : undefined,
+        aboutMe: about,
+      } as const;
+
+
+
+      await updateProfile.mutateAsync(payload);
       router.back();
     } catch (err) {
       console.warn('[Profile] failed to save', err);
@@ -146,8 +154,7 @@ export default function ProfileEditScreen() {
   };
 
   /* ----------------------------- render ----------------------------- */
-
-  if (loading) {
+  if (profileLoading) {
     return (
       <SafeAreaView style={styles.screen}>
         <View style={[styles.flex1, styles.center]}>
@@ -156,6 +163,8 @@ export default function ProfileEditScreen() {
       </SafeAreaView>
     );
   }
+
+ 
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -167,9 +176,19 @@ export default function ProfileEditScreen() {
           <View style={styles.card}>
             {/* ---------- Avatar ---------- */}
             <TouchableOpacity onPress={pickImage} style={styles.avatarWrapper}>
-              <Image source={avatarSource} style={styles.avatar} />
+              <Image
+                source={
+                  avatarUri && !avatarFailed
+                     ? { uri: avatarUri }
+                    : randomPlaceholder.current
+                }
+                onError={() => setAvatarFailed(true)}
+                style={styles.avatar}
+              />
             </TouchableOpacity>
-            <AppText style={styles.changeText}>Change photo</AppText>
+            <AppText style={styles.changeText}>
+              {uploadPending ? 'Uploading…' : 'Change photo'}
+            </AppText>
 
             {/* ---------- Gender selector ---------- */}
             <View style={styles.genderRow}>
@@ -202,8 +221,12 @@ export default function ProfileEditScreen() {
             {/* ---------- Personal Details ---------- */}
             <AppText style={styles.section}>Personal Details</AppText>
 
-            <AppText style={styles.label}>Full Name</AppText>
-            <TextInput style={styles.input} value={name} onChangeText={setName} />
+            <AppText style={styles.label}>First Name</AppText>
+            <TextInput style={styles.input} value={firstName} onChangeText={setFirstName} />
+
+            <AppText style={styles.label}>Last Name</AppText>
+            <TextInput style={styles.input} value={lastName} onChangeText={setLastName} />
+
 
             <AppText style={styles.label}>Email</AppText>
             <TextInput
@@ -271,13 +294,13 @@ export default function ProfileEditScreen() {
             />
 
             {/* ---------- Save ---------- */}
-            <TouchableOpacity style={styles.saveBtn} onPress={save}>
+            <TouchableOpacity style={styles.saveBtn} onPress={save} disabled={uploadPending}>
               <AppText style={styles.saveText}>Save Changes</AppText>
             </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
-            {/* Back floating button */}
+      {/* Back floating button */}
       <TouchableOpacity style={styles.fab} onPress={() => router.back()}>
         <Ionicons name="arrow-back" size={24} color="#fff" />
       </TouchableOpacity>
@@ -288,11 +311,6 @@ export default function ProfileEditScreen() {
 /* ------------------------------------------------------------------ */
 /* Styles */
 /* ------------------------------------------------------------------ */
-
-const INPUT_BG = '#E6F3E6';
-const BACKDROP = '#EAF8E5';
-const CARD_RAD = 16;
-
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BACKDROP },
   flex1: { flex: 1 },
@@ -377,7 +395,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   multiline: { textAlignVertical: 'top' },
-    fab: {
+  fab: {
     position: 'absolute',
     top: STATUS_TOP + 8,
     left: 12,

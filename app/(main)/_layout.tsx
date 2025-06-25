@@ -1,16 +1,34 @@
+// app/(main)/_layout.tsx
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Tabs } from 'expo-router';
+import { Redirect, Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 
-import { HapticTab } from '@/components/HapticTab'; // optional
+import { HapticTab } from '@/components/HapticTab';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
+import { useAuth } from '@/contexts/AuthContext';
 import { useColorScheme } from '@/hooks/useColorScheme.web';
 
 export default function MainTabs() {
+  const { loading, token } = useAuth();        // 1️⃣ auth state from context
   const colorScheme = useColorScheme();
 
+  /* ───────────── STATE 1: still checking auth ───────────── */
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  } 
+  /* ───────────── STATE 2: not signed in ───────────── */
+  if (!token) {
+    // Redirect un‑authenticated users straight into the auth stack
+    return <Redirect href="/(auth)/login" />;
+  }
+
+  /* ───────────── STATE 3: signed in ───────────── */
   return (
     <Tabs
       screenOptions={{
@@ -19,12 +37,12 @@ export default function MainTabs() {
         tabBarButton: HapticTab,
         tabBarBackground: TabBarBackground,
         tabBarStyle: Platform.select({
-          ios: { position: 'absolute' }, // translucent blur
+          ios: { position: 'absolute' },
           default: {},
         }),
       }}
     >
-      {/* ------------- Home ------------- */}
+      {/* Home */}
       <Tabs.Screen
         name="index"
         options={{
@@ -35,7 +53,7 @@ export default function MainTabs() {
         }}
       />
 
-      {/* ------------- Weather ------------- */}
+      {/* Weather */}
       <Tabs.Screen
         name="weather"
         options={{
@@ -50,22 +68,18 @@ export default function MainTabs() {
         }}
       />
 
-        {/* ------------- Commmunity ------------- */}
+      {/* Community */}
       <Tabs.Screen
         name="community"
         options={{
           title: 'Community',
           tabBarIcon: ({ color, size }) => (
-            <MaterialCommunityIcons
-              name="chat"
-              size={size}
-              color={color}
-            />
+            <MaterialCommunityIcons name="chat" size={size} color={color} />
           ),
         }}
       />
 
-      {/* ------------- Settings ------------- */}
+      {/* Settings */}
       <Tabs.Screen
         name="settings"
         options={{
@@ -76,14 +90,13 @@ export default function MainTabs() {
         }}
       />
 
-      {/* ------------- Tips ------------- */}
-      <Tabs.Screen
-        name="tips"
-        options={{
-          href: null,          // <- removes from tab bar
-          presentation: 'modal'
-        }}
-      />
+      {/* Hidden modal routes  */}
+      <Tabs.Screen name="tips" options={{ href: null }} />
+      <Tabs.Screen name="tasks" options={{ href: null }} />
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+});

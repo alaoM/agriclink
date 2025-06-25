@@ -1,11 +1,14 @@
+// app/(auth)/forgot-password.tsx
+// Screen for requesting a password‑reset e‑mail.
+
 import { AppText } from '@/components/AppText';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
+import axios from 'axios';
 import { router } from 'expo-router';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-    Alert,
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -14,37 +17,52 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
 
-/* ───── Validation ───── */
+/* ─────────────────── Validation ─────────────────── */
 const schema = yup.object({
-  identifier: yup
+  email: yup
     .string()
-    .required('Email or phone is required')
-    .test('email-or-phone', 'Enter a valid email or phone number', (v = '') => {
-      const mailRx  = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      const phoneRx = /^[0-9]{7,15}$/;
-      return mailRx.test(v) || phoneRx.test(v);
-    }),
+    .required('Email is required')
+    .email('Enter a valid e‑mail'),
 });
+
 type FormData = yup.InferType<typeof schema>;
 
-export default function ForgotIdentifier() {
+/* ─────────────────── API ─────────────────── */
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
+const ENDPOINT = `${API_BASE}/api/auth/forgot-password`;
+
+async function requestReset(email: string) {
+  return axios.post(ENDPOINT, { email });
+}
+
+/* ─────────────────── Screen ─────────────────── */
+export default function ForgotPasswordScreen() {
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: yupResolver(schema) });
 
-  async function onSubmit({ identifier }: FormData) {
+  const onSubmit = async ({ email }: FormData) => {
     try {
-      await fakeSend(identifier); // TODO replace
-      Alert.alert('Success', 'Check your inbox / SMS for further steps.');
-      router.replace('/(auth)/reset-password');
+      await requestReset(email.toLowerCase());
+      Toast.show({
+        type: 'success',
+        text1: 'Reset link sent',
+        text2: 'Check your inbox for instructions.',
+      });
+      router.replace(`/(auth)/reset-password?email=${encodeURIComponent(email)}`);
     } catch (e: any) {
-      Alert.alert('Error', e.message || 'Something went wrong');
+      Toast.show({
+        type: 'error',
+        text1: 'Request failed',
+        text2: e?.response?.data?.message || e.message || 'Unknown error',
+      });
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -55,47 +73,44 @@ export default function ForgotIdentifier() {
         <View style={styles.centerBox}>
           <View style={styles.card}>
             {/* Header */}
-            <View style={styles.headerRow}>
-              <Feather name="arrow-left" size={24} onPress={() => router.back()} />
-              <View style={{ width: 24 }} />
-            </View>
+            <TouchableOpacity
+              accessibilityLabel="Back"
+              onPress={() => router.back()}
+              style={styles.backBtn}
+            >
+              <Feather name="arrow-left" size={24} color="#000" />
+            </TouchableOpacity>
 
             <AppText style={styles.title}>Forgot Password</AppText>
             <AppText style={styles.subtitle}>
-              Enter your registered email or phone number and we'll send you a reset link/code.
+              Enter your registered e‑mail and we’ll send you a reset link.
             </AppText>
 
-            {/* Identifier */}
+            {/* Email input */}
             <Controller
               control={control}
-              name="identifier"
+              name="email"
               defaultValue=""
               render={({ field: { onChange, onBlur, value } }) => (
                 <TextInput
-                  placeholder="Email or Phone"
+                  placeholder="Email"
                   placeholderTextColor="#6B8E6B"
-                  keyboardType="email-address"
                   autoCapitalize="none"
-                  style={[
-                    styles.input,
-                    errors.identifier && styles.inputError,
-                  ]}
+                  keyboardType="email-address"
+                  style={[styles.input, errors.email && styles.inputError]}
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
                 />
               )}
             />
-            {errors.identifier && (
-              <AppText style={styles.error}>{errors.identifier.message}</AppText>
+            {errors.email && (
+              <AppText style={styles.error}>{errors.email.message}</AppText>
             )}
 
             {/* Send button */}
             <TouchableOpacity
-              style={[
-                styles.primaryBtn,
-                isSubmitting && styles.btnDisabled,
-              ]}
+              style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
               disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
             >
@@ -107,6 +122,7 @@ export default function ForgotIdentifier() {
         </View>
       </KeyboardAvoidingView>
 
+      {/* Brand */}
       <View style={styles.brandContainer}>
         <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
@@ -114,34 +130,23 @@ export default function ForgotIdentifier() {
   );
 }
 
-/* ------- fake API ------- */
-async function fakeSend(id: string) {
-  return new Promise((res) => setTimeout(res, 1200));
-}
-
-
-
-
-
-
-
-/* ---------- shared styles ---------- */
-const PRIMARY   = '#00A000';
-const INPUT_BG  = '#E6F3E6';
-const BACKDROP  = '#EAF8E5';
-const CARD_RAD  = 16;
+/* ─────────────────── Styles ─────────────────── */
+const PRIMARY = '#00A000';
+const INPUT_BG = '#E6F3E6';
+const BACKDROP = '#EAF8E5';
+const CARD_RAD = 16;
 
 const styles = StyleSheet.create({
-  screen:       { flex: 1, backgroundColor: BACKDROP },
-  flex1:        { flex: 1 },
-  centerBox:    { flexGrow: 1, justifyContent: 'center', padding: 16 },
+  screen: { flex: 1, backgroundColor: BACKDROP },
+  flex1: { flex: 1 },
+  centerBox: { flexGrow: 1, justifyContent: 'center', padding: 16 },
 
-  card:         { backgroundColor: '#FFF', borderRadius: CARD_RAD, padding: 20 },
+  card: { backgroundColor: '#FFF', borderRadius: CARD_RAD, padding: 20 },
 
-  headerRow:    { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  backBtn: { marginBottom: 12, alignSelf: 'flex-start' },
 
-  title:        { fontSize: 22, fontWeight: '700', marginBottom: 8 },
-  subtitle:     { fontSize: 14, color: '#555', marginBottom: 24 },
+  title: { fontSize: 22, fontWeight: '700', marginBottom: 8 },
+  subtitle: { fontSize: 14, color: '#555', marginBottom: 24 },
 
   input: {
     height: 48,
@@ -151,8 +156,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-  inputError:   { borderWidth: 1, borderColor: 'red' },
-  error:        { color: 'red', marginTop: -4, marginBottom: 8 },
+  inputError: { borderWidth: 1, borderColor: 'red' },
+  error: { color: 'red', marginTop: -4, marginBottom: 8 },
 
   primaryBtn: {
     height: 48,
@@ -163,10 +168,8 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 12,
   },
-  btnDisabled:  { opacity: 0.6 },
-  btnText:      { color: '#FFF', fontSize: 16, fontWeight: '600' },
-
-  link:         { color: PRIMARY, textAlign: 'center', textDecorationLine: 'underline' },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 
   brandContainer: {
     position: 'absolute',
@@ -175,5 +178,5 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  brand:        { fontSize: 16, fontWeight: '500', color: '#4C794C' },
+  brand: { fontSize: 16, fontWeight: '500', color: '#4C794C' },
 });

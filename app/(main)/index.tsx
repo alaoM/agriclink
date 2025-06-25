@@ -1,6 +1,7 @@
 import maleAvatar from "@/assets/avatars/male.png";
 import dailyTips from "@/assets/data/farmer_daily_tips.json";
 import { AppText } from "@/components/AppText";
+import { HelloWave } from "@/components/HelloWave";
 import {
   Feather,
   FontAwesome,
@@ -8,38 +9,56 @@ import {
   MaterialIcons,
 } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   Image,
-  Keyboard,
   Platform,
   SafeAreaView,
   ScrollView,
   StatusBar,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
+import { useProfileQuery } from "../(auth)/profilehelper";
 
 /* ----- constants ----- */
 const STATUS_TOP =
   Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) + 8 : 16;
-const user = { name: "Janith", avatar: maleAvatar };
+
 
 export default function WelcomeScreen() {
-  const [query, setQuery] = useState("");
+  
+  const { data: user, } = useProfileQuery();
+    const [avatarFailed, setAvatarFailed] = useState(false);
+  
+ const [avatarUri, setAvatarUri] = useState<string | null>(null); // server URL or local URI
+   const [firstName, setFirstName] = useState('');
+   const [lastName, setLastName] = useState('');
+  
   const randomTip = useMemo(
     () => dailyTips[Math.floor(Math.random() * dailyTips.length)],
     []
   );
 
-  function submitSearch() {
-    if (!query.trim()) return;
-    Keyboard.dismiss();
-    router.push(`/search?query=${encodeURIComponent(query.trim())}`);
-  }
+  useEffect(() => {
+      if (!user) return;
+  
+       const resolvedAvatar = user.user.profilePhoto ?
+        user.user.profilePhoto
+        : null;
+      setAvatarUri(resolvedAvatar);
+  
+  
+  
+      setFirstName(user.user.firstName ?? '');
+      setLastName(user.user.lastName ?? '');
+      
+  
+  
+    }, [user]);
 
+ 
   return (
     <SafeAreaView style={styles.screen}>
       <ScrollView
@@ -48,10 +67,21 @@ export default function WelcomeScreen() {
       >
         {/* ---------- Header Row ---------- */}
         <View style={styles.headerRow}>
-          <Image source={user.avatar} style={styles.avatar} />
+           <View style={styles.avatarWrapper}>
+                        <Image
+                          source={
+                            avatarUri && !avatarFailed
+                               ? { uri: avatarUri }
+                              :  maleAvatar
+                          }
+                          onError={() => setAvatarFailed(true)}
+                          style={styles.avatar}
+                        />
+                      </View>
           <View style={styles.greetingCol}>
-            <AppText style={styles.greeting}>Hello {user.name},</AppText>
-            <AppText style={styles.welcome}>Welcome!</AppText>
+            <AppText style={styles.welcome}>Welcome!<HelloWave/></AppText>
+
+            <AppText style={styles.greeting}>{firstName} {lastName}</AppText>
           </View>
         </View>
 
@@ -61,18 +91,7 @@ export default function WelcomeScreen() {
           <AppText style={styles.tipBody}>{randomTip.body}</AppText>
         </View>
 
-        {/* ---------- Search ---------- */}
-        <View style={styles.searchBox}>
-          <Feather name="search" size={18} color="#777" />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search anything…"
-            value={query}
-            onChangeText={setQuery}
-            onSubmitEditing={submitSearch}
-            returnKeyType="search"
-          />
-        </View>
+       
 
         {/* ---------- Quick Links ---------- */}
         <AppText style={styles.section}>Quick Links</AppText>
@@ -149,11 +168,37 @@ const styles = StyleSheet.create({
   container: { padding: 24, paddingBottom: 80 },
 
   /* header row */
-  headerRow: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  avatar: { width: 72, height: 72, borderRadius: 36, marginRight: 16 },
+  headerRow: { 
+    backgroundColor: CARD_BG,
+    flexDirection: "row", 
+    alignItems: "center", 
+    marginBottom: 20, 
+    shadowColor: "#000",
+    borderRadius: 16,
+    padding: 5,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2, },
+
+  avatarWrapper: {
+    width: 84,
+    height: 84,
+    borderRadius: 52,
+    overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: '#ccc', 
+    marginRight:10
+  },
+
+  avatar: {  width: '100%',
+    height: '100%',
+    borderRadius: 52,
+    resizeMode: 'cover',},
+    
   greetingCol: {},
   greeting: { fontSize: 20, fontWeight: "700", color: "#1B5E20" },
-  welcome: { fontSize: 15, color: "#1B5E20" },
+  welcome: { fontSize: 24, color: "#1B5E20" },
 
   /* tip card */
   tipCard: {

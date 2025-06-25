@@ -2,11 +2,14 @@
 import { AppText } from '@/components/AppText';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
+import axios, { AxiosResponse } from 'axios';
 import { router } from 'expo-router';
-import React from 'react';
-import { Controller, useForm } from 'react-hook-form';
+import React, { useState } from 'react';
 import {
-    Alert,
+    Controller,
+    useForm
+} from 'react-hook-form';
+import {
     KeyboardAvoidingView,
     Platform,
     SafeAreaView,
@@ -16,46 +19,95 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
 
 /* ─────────────────── Validation ─────────────────── */
 const schema = yup.object().shape({
-  firstName:    yup.string().required('First name is required').min(2, 'Too short'),
-  lastName:     yup.string().required('Last name is required').min(2, 'Too short'),
-  email:        yup.string().required('Email is required').email('Invalid email'),
-  mobile:       yup.string()
-                   .required('Mobile number is required')
-                   .matches(/^[0-9]{7,15}$/, 'Invalid phone'),
-  address:      yup.string().required('Address is required').min(5, 'Too short'),
-  username:     yup.string()
-                   .required('Username is required')
-                   .matches(/^[a-zA-Z0-9_]{3,25}$/, '3‑25 letters, digits or _'),
-  password:     yup.string()
-                   .required('Password is required')
-                   .min(8,  'Min 8 characters')
-                   .matches(/[a-z]/, 'Need a lowercase letter')
-                   .matches(/[A-Z]/, 'Need an uppercase letter')
-                   .matches(/\d/,  'Need a number'),
+  firstName: yup.string().required('First name is required').min(2, 'Too short'),
+  lastName: yup.string().required('Last name is required').min(2, 'Too short'),
+  email: yup.string().required('Email is required').email('Invalid email'),
+  mobileNo: yup.string()
+    .required('Mobile number is required')
+    .matches(/^[0-9]{7,15}$/, 'Invalid phone'),
+  address: yup.string().required('Address is required').min(5, 'Too short'),
+  idNo: yup.string()
+    .required('ID number is required')
+    .matches(/^[0-9]+$/, 'ID number must be numeric'),
+  username: yup.string()
+    .required('Username is required')
+    .matches(/^[a-zA-Z0-9_]{3,25}$/, '3‑25 letters, digits or _'),
+  password: yup.string()
+    .required('Password is required')
+    .min(8, 'Min 8 characters')
+    .matches(/[a-z]/, 'Need a lowercase letter')
+    .matches(/[A-Z]/, 'Need an uppercase letter')
+    .matches(/\d/, 'Need a number')
+    .matches(/[^a-zA-Z0-9]/, 'Include a special character'),
 });
 
 type FormData = yup.InferType<typeof schema>;
 
-/* ─────────────────── Screen ─────────────────── */
+/* ─────────────────── API ─────────────────── */
+const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
+export async function registerUser<T = unknown>(
+  payload: Record<string, unknown>,
+): Promise<AxiosResponse<T>> {
+  return axios.post(`${API_BASE}/api/auth/register`, payload, {
+    headers: {
+      'Content-Type': 'application/json',
+    },
+  });
+}
+
+/* ─────────────────── Register Screen ─────────────────── */
 export default function RegisterScreen() {
   const {
     control,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm<FormData>({ resolver: yupResolver(schema) });
+  const [showPassword, setShowPassword] = useState(false);
 
-  async function onSubmit(data: FormData) {
+  const onSubmit = async (data: FormData) => {
+    const payload = {
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      username: data.username,
+      password: data.password,
+      mobileNo: data.mobileNo,
+      idNo: data.idNo,
+      address: data.address,
+    };
+
     try {
-      await fakeRegister(data);        // TODO replace with real API
-      router.replace('/(main)');
+      const resp = await registerUser(payload);
+      const message = resp.data?.message || 'Registration successful';
+
+      Toast.show({
+        type: 'success',
+        text1: 'Registration successful',
+        text2: message,
+      });
+
+      router.push({
+        pathname: '/(auth)/verify-otp',
+        params: {
+          api: `${API_BASE}/api/auth/verify-otp`,
+          purpose: 'email',
+          email: data.email,
+          next: '/login',
+        },
+      });
     } catch (e: any) {
-      Alert.alert('Registration failed', e.message || 'Unknown error');
+      Toast.show({
+        type: 'error',
+        text1: 'Registration failed',
+        text2: e?.response?.data?.message || e.message || 'Unknown error',
+      });
     }
-  }
+  };
 
   return (
     <SafeAreaView style={styles.screen}>
@@ -71,12 +123,13 @@ export default function RegisterScreen() {
           <View style={styles.card}>
             {/* Header */}
             <View style={styles.headerRow}>
+
               <Feather name="arrow-left" size={24} onPress={() => router.back()} />
               <AppText style={styles.headerTitle}>Register</AppText>
               <View style={{ width: 24 }} />
             </View>
 
-            {/* -------- inputs -------- */}
+            {/* Inputs */}
             {inputSpec.map(({ name, label, secure }) => (
               <View key={name} style={styles.inputGroup}>
                 <AppText style={styles.label}>{label}</AppText>
@@ -85,18 +138,30 @@ export default function RegisterScreen() {
                   name={name as keyof FormData}
                   defaultValue=""
                   render={({ field: { onBlur, onChange, value } }) => (
-                    <TextInput
-                      placeholder={`Enter your ${label.toLowerCase()}`}
-                      placeholderTextColor="#6B8E6B"
-                      secureTextEntry={secure}
-                      style={[
-                        styles.input,
-                        errors[name as keyof FormData] && styles.inputError,
-                      ]}
-                      onBlur={onBlur}
-                      onChangeText={onChange}
-                      value={value}
-                    />
+                    <View style={styles.passwordContainer}>
+                      <TextInput
+                        placeholder={`Enter your ${label.toLowerCase()}`}
+                        placeholderTextColor="#6B8E6B"
+                        secureTextEntry={secure && !showPassword}
+                        style={[
+                          styles.input,
+                          secure && styles.passwordInput,
+                          errors[name as keyof FormData] && styles.inputError,
+                        ]}
+                        onBlur={onBlur}
+                        onChangeText={onChange}
+                        value={value}
+                      />
+                      {secure && (
+                        <TouchableOpacity
+                          onPress={() => setShowPassword(v => !v)}
+                          style={styles.eyeIcon}
+                        >
+                          <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color="#555" />
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
                   )}
                 />
                 {errors[name as keyof FormData] && (
@@ -118,7 +183,7 @@ export default function RegisterScreen() {
               </AppText>
             </TouchableOpacity>
 
-            {/* Sign‑in link */}
+            {/* Sign in link */}
             <TouchableOpacity onPress={() => router.replace('/(auth)/login')}>
               <AppText style={styles.link}>
                 Already have an account? <AppText style={{ fontWeight: '600' }}>Sign in</AppText>
@@ -128,7 +193,7 @@ export default function RegisterScreen() {
         </ScrollView>
       </KeyboardAvoidingView>
 
-      {/* Brand pinned to bottom */}
+      {/* Brand logo */}
       <View style={styles.brandContainer}>
         <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
@@ -136,40 +201,34 @@ export default function RegisterScreen() {
   );
 }
 
-/* list used to drive form creation */
+/* Inputs used for form generation */
 const inputSpec = [
-  { name: 'firstName',  label: 'First Name' },
-  { name: 'lastName',   label: 'Last Name'  },
-  { name: 'email',      label: 'Email'      },
-  { name: 'mobile',     label: 'Mobile Number' },
-  { name: 'address',    label: 'Address'    },
-  { name: 'username',   label: 'Username'   },
-  { name: 'password',   label: 'Password', secure: true },
+  { name: 'firstName', label: 'First Name' },
+  { name: 'lastName', label: 'Last Name' },
+  { name: 'email', label: 'Email' },
+  { name: 'mobileNo', label: 'Mobile Number' },
+  { name: 'address', label: 'Address' },
+  { name: 'idNo', label: 'ID Number' },
+  { name: 'username', label: 'Username' },
+  { name: 'password', label: 'Password', secure: true },
 ] as const;
 
-/* ─────────────────── Fake API ─────────────────── */
-async function fakeRegister(data: FormData) {
-  return new Promise((res) => setTimeout(res, 1500));
-}
-
 /* ─────────────────── Styles ─────────────────── */
-const PRIMARY   = '#00A000';
-const INPUT_BG  = '#E6F3E6';
-const BACKDROP  = '#EAF8E5';
-const CARD_RAD  = 16;
+const PRIMARY = '#00A000';
+const INPUT_BG = '#E6F3E6';
+const BACKDROP = '#EAF8E5';
 
 const styles = StyleSheet.create({
-  screen:          { flex: 1, backgroundColor: BACKDROP },
-  flex1:           { flex: 1 },
-  centerBox:       { flexGrow: 1, justifyContent: 'center', padding: 16 },
+  screen: { flex: 1, backgroundColor: BACKDROP },
+  flex1: { flex: 1 },
+  centerBox: { flexGrow: 1, justifyContent: 'center', padding: 16 },
 
-  card:            { backgroundColor: '#FFF', borderRadius: CARD_RAD, padding: 20 },
+  card: { backgroundColor: '#FFF', borderRadius: 16, padding: 20 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  headerTitle: { fontSize: 18, fontWeight: '600' },
 
-  headerRow:       { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  headerTitle:     { fontSize: 18, fontWeight: '600' },
-
-  inputGroup:      { marginBottom: 12 },
-  label:           { fontSize: 14, marginBottom: 4, color: '#222' },
+  inputGroup: { marginBottom: 12 },
+  label: { fontSize: 14, marginBottom: 4, color: '#222' },
   input: {
     height: 48,
     backgroundColor: INPUT_BG,
@@ -177,8 +236,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     fontSize: 16,
   },
-  inputError:      { borderWidth: 1, borderColor: 'red' },
-  error:           { color: 'red', marginTop: 2 },
+  inputError: { borderWidth: 1, borderColor: 'red' },
+  error: { color: 'red', marginTop: 2 },
+  eyeIcon: { position: 'absolute', right: 12, top: 14 },
+  passwordContainer: { position: 'relative' },
+  passwordInput: { paddingRight: 40 },
 
   primaryBtn: {
     height: 48,
@@ -189,11 +251,10 @@ const styles = StyleSheet.create({
     marginTop: 12,
     marginBottom: 20,
   },
-  btnDisabled:     { opacity: 0.6 },
-  btnText:         { color: '#FFF', fontSize: 16, fontWeight: '600' },
+  btnDisabled: { opacity: 0.6 },
+  btnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 
-  link:            { color: PRIMARY, textAlign: 'center', textDecorationLine: 'underline' },
-
+  link: { color: PRIMARY, textAlign: 'center', textDecorationLine: 'underline' },
   brandContainer: {
     position: 'absolute',
     bottom: 20,
@@ -201,5 +262,5 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  brand:           { fontSize: 16, fontWeight: '500', color: '#4C794C' },
+  brand: { fontSize: 16, fontWeight: '500', color: '#4C794C' },
 });

@@ -6,7 +6,7 @@ import { StyleSheet, View } from 'react-native';
 export default function SplashScreenTwo() {
   useEffect(() => {
     const timer = setTimeout(() => {
-      router.replace('/(main)'); // Redirect to the login screen after the splash screen
+      router.replace('/login'); // Redirect to the login screen after the splash screen
     }, 3000);
     return () => clearTimeout(timer);
   }, []);

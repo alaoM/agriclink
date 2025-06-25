@@ -8,6 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
+agriclink-b9ea081f04e4.*
 
 # Native
 .kotlin/
@@ -17,6 +18,8 @@ expo-env.d.ts
 *.p12
 *.key
 *.mobileprovision
+
+
 
 # Metro
 .metro-health-check*
