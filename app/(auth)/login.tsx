@@ -1,7 +1,7 @@
-// app/(auth)/login.tsx
-// Sign‑in screen: sends { username, password, keepSignedIn } → /api/auth/login
+// screens/login.tsx
 
 import { AppText } from '@/components/AppText';
+import LoginTFA from '@/components/LoginTFA';
 import { useAuth } from '@/contexts/AuthContext';
 import { Feather } from '@expo/vector-icons';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -22,51 +22,37 @@ import {
 import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
 
-/* ─────────────────── Validation ─────────────────── */
+/* ─────────────── Validation ─────────────── */
 const schema = yup.object({
   identifier: yup
     .string()
     .required('Username or email is required')
-    .test('id', 'Enter a valid username or email', (v = '') => {
-      const userRx = /^[a-zA-Z0-9_]{3,25}$/;
-      const mailRx = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return userRx.test(v) || mailRx.test(v);
+    .test('valid-id', 'Invalid username or email', (v = '') => {
+      const usernameRegex = /^[a-zA-Z0-9_]{3,25}$/;
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return usernameRegex.test(v) || emailRegex.test(v);
     }),
-  password: yup
-    .string()
-    .required('Password is required')
-    .min(8, 'Min 8 characters'),
+  password: yup.string().required('Password is required').min(8, 'Min 8 characters'),
 });
 
 type FormData = yup.InferType<typeof schema>;
 
-/* ─────────────────── API ─────────────────── */
+/* ─────────────── API ─────────────── */
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
-const ENDPOINT = `${API_BASE}/api/auth/login`;
+const LOGIN_ENDPOINT = `${API_BASE}/api/auth/login`;
 
+const loginRequest = (username: string, password: string, keepSignedIn: boolean) =>
+  axios.post(LOGIN_ENDPOINT, { username, password, keepSignedIn });
 
-
-async function loginRequest(username: string, password: string, keepSignedIn: boolean) {
-  const payload = {
-    username: username,
-    password: password,
-    keepSignedIn: keepSignedIn,
-  } as const;
- 
-
- return axios.post(
-    ENDPOINT,
-   payload,
-    { headers: { 'Content-Type': 'application/json' } },
-  );
-}
-
-/* ─────────────────── Screen ─────────────────── */
+/* ─────────────── Component ─────────────── */
 export default function LoginScreen() {
   const { signIn } = useAuth();
   const [keepSignedIn, setKeepSignedIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
+  const [showTFA, setShowTFA] = useState(false);
+  const [method, setMethod] = useState<'email' | 'authenticator' | null>(null);
+  const [authDetails, setAuthDetails] = useState<{ email: string; password: string } | null>(null);
+ 
   const {
     control,
     handleSubmit,
@@ -75,13 +61,19 @@ export default function LoginScreen() {
 
   const onSubmit = async ({ identifier, password }: FormData) => {
     try {
-      const resp =  await loginRequest(identifier, password, keepSignedIn);
+      const response = await loginRequest(identifier, password, keepSignedIn);
+      console.log(response.data)
+      const { token, user, twoFactorEnabled, twoFactorMethod } = response.data;
 
-       const { token, user } = resp.data;
-
-      await signIn({ token, user, remember: keepSignedIn });
-      Toast.show({ type: 'success', text1: 'Welcome back!' });
-      router.replace('/(main)');
+      if (twoFactorEnabled) {
+        setShowTFA(true);
+        setMethod(twoFactorMethod);
+        setAuthDetails({ email: identifier, password });
+      } else {
+        await signIn({ token, user, remember: keepSignedIn });
+        Toast.show({ type: 'success', text1: 'Welcome back!' });
+      // router.replace("/(main)")
+      }
     } catch (e: any) {
       Toast.show({
         type: 'error',
@@ -93,10 +85,7 @@ export default function LoginScreen() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={styles.flex1}
-      >
+      <KeyboardAvoidingView style={styles.flex1} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.centerBox}>
           <View style={styles.card}>
             <AppText style={styles.title}>Welcome back</AppText>
@@ -115,7 +104,6 @@ export default function LoginScreen() {
                   onBlur={onBlur}
                   onChangeText={onChange}
                   value={value}
-                  returnKeyType="next"
                 />
               )}
             />
@@ -136,9 +124,8 @@ export default function LoginScreen() {
                     onBlur={onBlur}
                     onChangeText={onChange}
                     value={value}
-                    returnKeyType="done"
                   />
-                  <TouchableOpacity onPress={() => setShowPassword(v => !v)} style={styles.eyeIcon}>
+                  <TouchableOpacity onPress={() => setShowPassword((prev) => !prev)} style={styles.eyeIcon}>
                     <Feather name={showPassword ? 'eye-off' : 'eye'} size={20} color="#555" />
                   </TouchableOpacity>
                 </View>
@@ -148,25 +135,19 @@ export default function LoginScreen() {
 
             {/* Keep signed in */}
             <View style={styles.row}>
-              <Checkbox
-                value={keepSignedIn}
-                onValueChange={setKeepSignedIn}
-                color={keepSignedIn ? PRIMARY : undefined}
-                style={styles.checkbox}
-              />
+              <Checkbox value={keepSignedIn} onValueChange={setKeepSignedIn} color={keepSignedIn ? PRIMARY : undefined} />
               <AppText style={styles.keepText}>Keep me signed in</AppText>
             </View>
 
-            {/* Log In */}
+            {/* Submit */}
             <TouchableOpacity
               style={[styles.primaryBtn, isSubmitting && styles.btnDisabled]}
-              disabled={isSubmitting}
               onPress={handleSubmit(onSubmit)}
+              disabled={isSubmitting}
             >
               <AppText style={styles.btnText}>{isSubmitting ? 'Logging in…' : 'Log In'}</AppText>
             </TouchableOpacity>
 
-            {/* Forgot password */}
             <TouchableOpacity onPress={() => router.push('/(auth)/forgot-password')}>
               <AppText style={styles.link}>Forgot Password?</AppText>
             </TouchableOpacity>
@@ -177,15 +158,28 @@ export default function LoginScreen() {
       {/* Footer */}
       <View style={styles.brandContainer}>
         <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-          <AppText style={styles.accountLink}>Create new account</AppText>
+          <AppText style={styles.accountLink} >Create new account</AppText>
         </TouchableOpacity>
-        <AppText style={styles.brand}>AgriConnect</AppText>
+        <AppText style={styles.brand}>AgricLink</AppText>
       </View>
+
+      {/* 2FA Modal */}
+     
+   {showTFA && (
+  <LoginTFA
+    visible={showTFA}
+    onClose={() => setShowTFA(false)}
+    method={method}
+    email={authDetails?.email ?? ''}
+    password={authDetails?.password ?? ''}
+  />
+)}
+
     </SafeAreaView>
   );
 }
 
-/* ─────────────────── Styles ─────────────────── */
+/* ─────────────── Styles ─────────────── */
 const PRIMARY = '#00A000';
 const INPUT_BG = '#E6F3E6';
 const BACKDROP = '#EAF8E5';
@@ -200,6 +194,7 @@ const styles = StyleSheet.create({
 
   title: { fontSize: 22, fontWeight: '700', marginBottom: 12 },
   input: {
+    color: '#000',
     height: 48,
     backgroundColor: INPUT_BG,
     borderRadius: 6,
@@ -207,16 +202,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 8,
   },
-  inputError: { borderWidth: 1, borderColor: 'red' },
-  error: { color: 'red', marginBottom: 4 },
+  inputError: { borderColor: 'red', borderWidth: 1 },
+  error: { color: 'red', marginBottom: 6 },
 
   passwordContainer: { position: 'relative' },
   passwordInput: { paddingRight: 40 },
   eyeIcon: { position: 'absolute', right: 12, top: 14 },
 
   row: { flexDirection: 'row', alignItems: 'center', marginVertical: 12 },
-  checkbox: { marginRight: 8 },
-  keepText: { fontSize: 14, color: '#222' },
+  keepText: { fontSize: 14, color: '#222', marginLeft:5 },
 
   primaryBtn: {
     height: 48,
@@ -229,14 +223,8 @@ const styles = StyleSheet.create({
   btnDisabled: { opacity: 0.6 },
   btnText: { color: '#FFF', fontSize: 16, fontWeight: '600' },
 
-  brandContainer: {
-    position: 'absolute',
-    bottom: 20,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-  },
+  brandContainer: { alignItems: 'center', position: 'absolute', bottom: 20, left: 0, right: 0 },
   brand: { fontSize: 16, fontWeight: '500', color: '#4C794C' },
-  accountLink: { color: PRIMARY, textAlign: 'center', marginBottom: 12, fontSize: 18, textDecorationLine: 'underline' },
+  accountLink: { color: PRIMARY, textAlign: 'center', fontWeight: '600', textDecorationLine: 'underline', marginBottom: 12 },
   link: { color: PRIMARY, textAlign: 'center', textDecorationLine: 'underline' },
 });

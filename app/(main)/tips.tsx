@@ -4,8 +4,8 @@ import { Image, Platform, SafeAreaView, ScrollView, StatusBar, StyleSheet, Touch
 
 import tipsJson from '@/assets/data/farmer_daily_tips.json';
 import guidesJson from '@/assets/data/farmer_how_to_guides.json';
+import logo from '@/assets/images/icon.png';
 import { AppText } from '@/components/AppText';
-
 // ───────────────────────────────────────────────────
 // Helpers
 // ───────────────────────────────────────────────────
@@ -62,11 +62,9 @@ export default function TipsScreen() {
             onPress={() => router.push(`/guide/${guide.id}`)}
           >
             <Image
-              source={{
-                uri: `https://source.unsplash.com/seed/${guide.id}/150x150?${encodeURIComponent(
-                  guide.category
-                )}`,
-              }}
+              source={
+                logo
+              }
               style={styles.guideImage}
             />
             <View style={styles.guideText}>

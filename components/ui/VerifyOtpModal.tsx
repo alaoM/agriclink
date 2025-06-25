@@ -4,15 +4,15 @@ import axios from 'axios';
 import { router } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import {
-    Alert,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 
 /* ─────────────────── Config ─────────────────── */
@@ -121,7 +121,7 @@ export default function VerifyOtpModal({apiPath, apiPurpose, nextUri, otpsentto}
 
       {/* Brand pinned to bottom */}
       <View style={styles.brandContainer}>
-        <AppText style={styles.brand}>AgriConnect</AppText>
+        <AppText style={styles.brand}>AgricLink</AppText>
       </View>
     </SafeAreaView>
     </Modal>

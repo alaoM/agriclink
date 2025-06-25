@@ -19,17 +19,12 @@ import {
 /* ------------------------------------------------------
    Local fallback avatars (adjust paths or alias to taste)
 ---------------------------------------------------------*/
-import random1 from '@/assets/avatars/rand1.jpg'; /*
-import random2 from '@/assets/avatars/rand2.jpg';
-import random3 from '@/assets/avatars/rand3.jpg'; */
+import random1 from '@/assets/avatars/rand1.jpg';
 
 import { AppText } from '@/components/AppText';
+import { useProfileQuery, useUpdateProfileMutation, useUploadPhotoMutation } from '@/components/profilehelper';
 
-import {
-  useProfileQuery,
-  useUpdateProfileMutation,
-  useUploadPhotoMutation,
-} from '../(auth)/profilehelper';
+
 
 /* ------------------------------------------------------------------
    Constants
@@ -38,8 +33,7 @@ const STATUS_TOP = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) +
 const RANDOM_POOL = [random1, /* random2, random3 */];
 const INPUT_BG = '#E6F3E6';
 const BACKDROP = '#EAF8E5';
-const CARD_RAD = 16;
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
+const CARD_RAD = 16; 
 
 /* ------------------------------------------------------------------
    Component
@@ -121,6 +115,7 @@ export default function ProfileEditScreen() {
 
     try {
       const remoteUrl = await uploadPhoto(localUri);
+     
       setAvatarUri(remoteUrl); // swap to CDN URL
     } catch (err) {
       console.error('[Profile] Upload failed', err);
@@ -182,6 +177,7 @@ export default function ProfileEditScreen() {
                      ? { uri: avatarUri }
                     : randomPlaceholder.current
                 }
+                resizeMode='cover'
                 onError={() => setAvatarFailed(true)}
                 style={styles.avatar}
               />
@@ -342,7 +338,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     borderRadius: 50,
-    resizeMode: 'cover',
+    // resizeMode: 'cover',
   },
   changeText: {
     marginBottom: 16,

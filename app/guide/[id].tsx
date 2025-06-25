@@ -1,3 +1,6 @@
+import guidesJson from '@/assets/data/farmer_how_to_guides.json';
+import logo from '@/assets/images/icon.png';
+import { AppText } from '@/components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo } from 'react';
@@ -11,9 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-
-import guidesJson from '@/assets/data/farmer_how_to_guides.json';
-import { AppText } from '@/components/AppText';
 
 /* ────────────────────────────────────────────────────────
    Guide Detail Screen  (/guide/[id])
@@ -50,11 +50,8 @@ export default function GuideDetailScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Hero Image */}
         <Image
-          source={{
-            uri: `https://source.unsplash.com/seed/${guide.id}/600x400?${encodeURIComponent(
-              guide.category
-            )}`,
-          }}
+          source={logo}
+          
           style={styles.hero}
         />
 

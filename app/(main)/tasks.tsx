@@ -37,8 +37,6 @@ interface Task {
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 
 
- 
-
 const fetchTasks = async (token: string | null): Promise<Task[]> => { 
   const res = await fetch(`${API_BASE}/api/tasks/getTasks`, {
      headers: { Authorization: `Bearer ${token}` },

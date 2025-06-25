@@ -5,8 +5,7 @@ import { HelloWave } from "@/components/HelloWave";
 import {
   Feather,
   FontAwesome,
-  MaterialCommunityIcons,
-  MaterialIcons,
+  MaterialCommunityIcons
 } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useEffect, useMemo, useState } from "react";
@@ -20,7 +19,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { useProfileQuery } from "../(auth)/profilehelper";
+import { useProfileQuery } from "../../components/profilehelper";
 
 /* ----- constants ----- */
 const STATUS_TOP =
@@ -31,7 +30,7 @@ export default function WelcomeScreen() {
   
   const { data: user, } = useProfileQuery();
     const [avatarFailed, setAvatarFailed] = useState(false);
-  
+ console.log(user)
  const [avatarUri, setAvatarUri] = useState<string | null>(null); // server URL or local URI
    const [firstName, setFirstName] = useState('');
    const [lastName, setLastName] = useState('');
@@ -74,6 +73,7 @@ export default function WelcomeScreen() {
                                ? { uri: avatarUri }
                               :  maleAvatar
                           }
+                          resizeMode="cover"
                           onError={() => setAvatarFailed(true)}
                           style={styles.avatar}
                         />
@@ -115,12 +115,12 @@ export default function WelcomeScreen() {
 
 /* ----- Quick‑link data ----- */
 const links = [
-  {
+ /*  {
     title: "News",
     path: "/news",
     desc: "Latest agri news",
     icon: <Feather name="book-open" size={26} color="#2E7D32" />,
-  },
+  }, */
   {
     title: "Weather",
     path: "/weather",
@@ -133,12 +133,12 @@ const links = [
       />
     ),
   },
-  {
+ /*  {
     title: "Market Prices",
     path: "/marketplace",
     desc: "Crop price updates",
     icon: <MaterialIcons name="price-change" size={26} color="#2E7D32" />,
-  },
+  }, */
   {
     title: "Farming Tips",
     path: "/tips",
@@ -194,7 +194,7 @@ const styles = StyleSheet.create({
   avatar: {  width: '100%',
     height: '100%',
     borderRadius: 52,
-    resizeMode: 'cover',},
+   /*  resizeMode: 'cover', */},
     
   greetingCol: {},
   greeting: { fontSize: 20, fontWeight: "700", color: "#1B5E20" },

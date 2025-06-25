@@ -190,7 +190,7 @@ export default function ResetPasswordScreen() {
 
       {/* Brand */}
       <View style={styles.brandContainer}>
-        <AppText style={styles.brand}>AgriConnect</AppText>
+        <AppText style={styles.brand}>AgricLink</AppText>
       </View>
     </SafeAreaView>
   );
@@ -225,6 +225,7 @@ const styles = StyleSheet.create({
   innerInput: { flex: 1, fontSize: 16 },
 
   input: {
+    color: '#000',
     height: 48,
     backgroundColor: INPUT_BG,
     borderRadius: 6,
