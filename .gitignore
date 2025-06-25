@@ -8,7 +8,7 @@ node_modules/
 dist/
 web-build/
 expo-env.d.ts
-agriclink-b9ea081f04e4.json
+agriclink-b9ea081f04e4.*
 
 # Native
 .kotlin/
