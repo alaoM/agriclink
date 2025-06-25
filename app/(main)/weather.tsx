@@ -1,7 +1,6 @@
 import { AppText } from '@/components/AppText';
 import { useAuth } from '@/contexts/AuthContext';
 import { Feather } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useQuery } from '@tanstack/react-query';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -9,7 +8,6 @@ import * as Location from 'expo-location';
 import LottieView from 'lottie-react-native';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Platform,
   SafeAreaView,
   ScrollView,
@@ -23,9 +21,7 @@ import {
    Constants & helpers
 -------------------------------------------------------------------*/
 const STATUS_TOP = Platform.OS === 'android' ? (StatusBar.currentHeight ?? 24) + 8 : 16;
-const STORAGE_KEY = 'LAST_COORDS';
 const INITIAL_COORDS = { latitude: 6.5, longitude: 3.3 }; // Lagos fallback
-
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
 
 async function fetchWeatherByCoords(token: string, lat: number, lon: number) {
@@ -62,57 +58,16 @@ function mapApi(api: any) {
 -------------------------------------------------------------------*/
 export default function WeatherScreen() {
   const { token } = useAuth();
- const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-
+  const [coords, setCoords] = useState(INITIAL_COORDS);
   const [date, setDate] = useState(new Date());
   const [showPicker, setShowPicker] = useState(false);
 
   // React Query fetch based on coords
-const { data: api, isLoading, refetch } = useQuery({
-  queryKey: ['weather', coords?.latitude, coords?.longitude],
-  queryFn: () => fetchWeatherByCoords(token, coords!.latitude, coords!.longitude),
-  enabled: !!coords, // run only if coords is set
-  staleTime: 1000 * 60 * 30,
-});
-
-// Load location on mount
-useEffect(() => {
-  loadLastOrRequestLocation();
-}, []);
-async function loadLastOrRequestLocation() {
-  try {
-    const stored = await AsyncStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      setCoords(parsed);
-      return;
-    }
-
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status === 'granted') {
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-      setCoords(loc.coords);
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(loc.coords));
-    } else {
-      // Permission denied → use fallback
-      setCoords(INITIAL_COORDS);
-    }
-  } catch (err) {
-    console.warn('Location error:', err);
-    setCoords(INITIAL_COORDS);
-  }
-}
-// Refresh location manually
-async function requestLocation() {
-  const { status } = await Location.requestForegroundPermissionsAsync();
-  if (status === 'granted') {
-    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
-    setCoords(loc.coords);
-    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(loc.coords));
-  } else {
-    Alert.alert('Permission Denied', 'Location access is required to get your local weather.');
-  }
-}
+  const { data: api, isLoading, refetch } = useQuery({
+    queryKey: ['weather', coords.latitude, coords.longitude],
+    queryFn: () => fetchWeatherByCoords(token, coords.latitude, coords.longitude),
+    staleTime: 1000 * 60 * 30,
+  });
 
   const data = api ? mapApi(api) : null;
   const theme = useMemo(() => getTheme(data?.condition ?? 'Sunny'), [data]);
@@ -122,14 +77,14 @@ async function requestLocation() {
     requestLocation();
   }, []);
 
- /*  async function requestLocation() {
+  async function requestLocation() {
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status === 'granted') {
       const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Low });
       setCoords(loc.coords);
       refetch();
     }
-  } */
+  }
 
  
   if (isLoading || !data) {

@@ -9,13 +9,13 @@ import { router } from 'expo-router';
 import React from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
@@ -124,7 +124,7 @@ export default function ForgotPasswordScreen() {
 
       {/* Brand */}
       <View style={styles.brandContainer}>
-        <AppText style={styles.brand}>AgricLink</AppText>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );
@@ -150,7 +150,6 @@ const styles = StyleSheet.create({
 
   input: {
     height: 48,
-    color: '#000',
     backgroundColor: INPUT_BG,
     borderRadius: 6,
     paddingHorizontal: 14,

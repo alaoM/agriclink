@@ -6,18 +6,18 @@ import axios, { AxiosResponse } from 'axios';
 import { router } from 'expo-router';
 import React, { useState } from 'react';
 import {
-  Controller,
-  useForm
+    Controller,
+    useForm
 } from 'react-hook-form';
 import {
-  KeyboardAvoidingView,
-  Platform,
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
-  View,
+    KeyboardAvoidingView,
+    Platform,
+    SafeAreaView,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import * as yup from 'yup';
@@ -195,7 +195,7 @@ export default function RegisterScreen() {
 
       {/* Brand logo */}
       <View style={styles.brandContainer}>
-        <AppText style={styles.brand}>AgricLink</AppText>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );
@@ -230,7 +230,6 @@ const styles = StyleSheet.create({
   inputGroup: { marginBottom: 12 },
   label: { fontSize: 14, marginBottom: 4, color: '#222' },
   input: {
-    color: '#000',
     height: 48,
     backgroundColor: INPUT_BG,
     borderRadius: 6,

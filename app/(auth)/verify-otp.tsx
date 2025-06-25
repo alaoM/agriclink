@@ -1,4 +1,15 @@
-
+// app/(auth)/verify-otp.modal.tsx
+// Full‑screen OTP modal that accepts dynamic params via the URL query.
+// Launch example:
+//   router.push({
+//     pathname: '/(auth)/verify-otp',
+//     params: {
+//       api: 'https://api.example.com/auth/verify-otp',
+//       purpose: 'email',
+//       email: 'user@domain.com',
+//       next: '/welcome'
+//     }
+//   })
 
 import { AppText } from '@/components/AppText';
 import toastConfig from '@/components/toast/toastConfig';
@@ -28,16 +39,12 @@ const COLORS = {
 const CARD_RADIUS = 20;
 const OTP_LENGTH = 6;
 
-const API_BASE = process.env.EXPO_PUBLIC_API_BASE;
-
 /* ─────────────────── Screen ─────────────────── */
 export default function VerifyOtpModal() {
   /** Grab URL params */
   const params = useLocalSearchParams<Record<string, string>>();
   const { purpose = 'account', api: apiUrlParam, next: nextUriParam } = params;
 
-  const [resending, setResending] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
   // ── React State (MUST appear before early returns) ──
   const [digits, setDigits] = useState<string[]>(Array(OTP_LENGTH).fill(''));
   const [submitting, setSubmitting] = useState(false);
@@ -99,7 +106,12 @@ export default function VerifyOtpModal() {
       // console.log('OTP verification successful:', resp.data);
       router.replace(nextUri as any); // cast to satisfy TS union of known routes
     } catch (error: any) {
-
+      /*   if (isAxiosError(error)) {
+          console.error("Axios request failed", error.response?.data, error.toJSON());
+        } else {
+          console.error(error);
+        } */
+      console.log(error.response?.data.message);
       Toast.show({
         type: 'error',
         text1: 'Verification failed',
@@ -114,43 +126,6 @@ export default function VerifyOtpModal() {
     resetOtp();
     router.back();
   };
-
-  const handleResendOtp = async () => {
-    if (!params.email || cooldown > 0) return;
-
-    setResending(true);
-    try {
-      await axios.post(`${API_BASE}/api/auth/resend-otp`, { email: params.email });
-      Toast.show({
-        type: 'success',
-        text1: 'OTP resent!',
-        text2: `A new code has been sent to ${params.email}`,
-      });
-      resetOtp();
-      inputs.current[0]?.focus();
-      setCooldown(60); // Start 1-minute cooldown
-    } catch (error: any) {
-      Toast.show({
-        type: 'error',
-        text1: 'Resend failed',
-        text2: error?.response?.data?.message || 'Could not resend OTP',
-      });
-    } finally {
-      setResending(false);
-    }
-  };
-
-
-  useEffect(() => {
-    if (cooldown === 0) return;
-
-    const timer = setInterval(() => {
-      setCooldown((prev) => prev - 1);
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, [cooldown]);
-
 
   /* ─────────────────── JSX ─────────────────── */
   return (
@@ -207,24 +182,14 @@ export default function VerifyOtpModal() {
               >
                 <AppText style={styles.btnText}>{submitting ? 'Verifying…' : 'Verify'}</AppText>
               </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{ marginTop: 20 }}
-                disabled={resending || cooldown > 0}
-                onPress={handleResendOtp}
-              >
-                <AppText style={{ textAlign: 'center', color: COLORS.primary, fontWeight: '600' }}>
-                  {cooldown > 0 ? `Resend in ${cooldown}s` : resending ? 'Resending…' : 'Resend OTP'}
-                </AppText>
-              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>
-        <View style={styles.brandContainer}>
-          <AppText style={styles.brand}>AgricLink</AppText>
-        </View>
+         <View style={styles.brandContainer}>
+                <AppText style={styles.brand}>AgriConnect</AppText>
+              </View>
       </SafeAreaView>
-      <Toast config={toastConfig} />
+      <Toast config={toastConfig}/>
     </Modal>
   );
 }
@@ -290,6 +255,6 @@ const styles = StyleSheet.create({
     right: 0,
     alignItems: 'center',
   },
-  brand: { fontSize: 16, color: '#888' },
+  brand: { fontSize: 16, fontWeight: '500', color: '#4C794C' },
 
 });

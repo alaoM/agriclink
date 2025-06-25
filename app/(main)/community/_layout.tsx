@@ -38,18 +38,18 @@ export default function CommunityTabs() {
      
     >
       {/* -> app/(main)/community/chat.tsx */}
-     {/*  <TopTabs.Screen
+      <TopTabs.Screen
         name="chat"
         options={{
           title: 'Chat', 
         }}
-      /> */}
+      />
 
       {/* -> app/(main)/community/forums.tsx */}
       <TopTabs.Screen
-        name="forum"
+        name="Forums"
         options={{
-          title: 'Forum',
+          title: 'Forums',
         }}
       />
     </TopTabs>

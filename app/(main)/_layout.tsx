@@ -91,8 +91,6 @@ export default function MainTabs() {
       />
 
       {/* Hidden modal routes  */}
-      <Tabs.Screen name="marketplace" options={{ href: null }} />
-      <Tabs.Screen name="profile-edit/index" options={{ href: null }} />
       <Tabs.Screen name="tips" options={{ href: null }} />
       <Tabs.Screen name="tasks" options={{ href: null }} />
     </Tabs>

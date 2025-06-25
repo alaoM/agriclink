@@ -110,7 +110,7 @@ export default function VerifyEmail() {
 
       {/* Brand at bottom */}
       <View style={styles.brandContainer}>
-        <AppText style={styles.brand}>AgricLink</AppText>
+        <AppText style={styles.brand}>AgriConnect</AppText>
       </View>
     </SafeAreaView>
   );
